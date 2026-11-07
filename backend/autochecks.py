@@ -94,7 +94,7 @@ def run(c: dict, facts: dict) -> dict | None:
             return {"answer": "no", "evidence_ids": [lo, end["message_id"]], "strength": "strong",
                     "explanation": f"{c['title']} — Нет. Оператор закрыл чат [{end['message_id']}] без прощания; "
                                    f"основание — последняя реплика оператора [{lo}] и сообщение о закрытии чата."}
-        if end.get("event") in ("client_left", "connection_lost") and end.get("message_id", -1) > lo and c.get("na_allowed"):
+        if end.get("event") in ("client_left", "connection_lost") and end.get("after_last_operator", end.get("message_id", -1) > lo) and c.get("na_allowed"):
             return {"answer": "na", "evidence_ids": [end["message_id"]], "strength": "strong",
                     "explanation": f"{c['title']} — N/A. Диалог оборвался ([{end['message_id']}] {end.get('label', '')}) "
                                    f"до того, как оператор мог его завершить."}

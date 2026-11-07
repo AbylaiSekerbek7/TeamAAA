@@ -300,6 +300,13 @@ def compute_facts(record: dict, norm: dict) -> dict:
             ending = {"event": e["event"], "message_id": e["id"], "label": EVENT_LABEL_RU[e["event"]]}
             break
     client_after_last_op = [m["id"] for m in clients if last_op is not None and m["id"] > last_op["id"]]
+    if ending and last_op is not None:
+        end_msg = next((m for m in msgs if m["id"] == ending["message_id"]), None)
+        # In ASR transcripts the operator's last words can be logged just after the hang-up event.
+        ending["after_last_operator"] = bool(
+            ending["message_id"] > last_op["id"]
+            or (end_msg and end_msg["t"] is not None and last_op["t"] is not None and last_op["t"] - end_msg["t"] <= 15)
+        )
 
     # Operator response gaps after the first operator reply (first reaction is excluded by the rules).
     gaps = []
