@@ -10,3 +10,4 @@ data/*.json
 .claude/settings.local.json
 config.local.json
 *.pdf
+data/audio/

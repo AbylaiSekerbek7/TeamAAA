@@ -10,7 +10,7 @@ import hashlib
 
 AUTO_CHECKS = {
     "contact_greeting_name": "Приветствие + имя + язык клиента в первой реплике оператора",
-    "closing_farewell": "Прощание в последней реплике оператора / обрыв чата",
+    "closing_farewell": "Нет прощания в последней реплике оператора / обрыв чата (при наличии прощания решает модель)",
 }
 
 
@@ -47,11 +47,10 @@ def run(c: dict, facts: dict) -> dict | None:
         fw = (facts.get("last_operator_checks") or {}).get("farewell")
         end = facts.get("ending") or {}
         after = facts.get("client_messages_after_last_operator") or []
-        if fw and facts.get("bare_farewell_after_question"):
-            return None  # "Goodbye." in reply to a direct question — needs judgement
         if fw:
-            return {"answer": "yes", "evidence_ids": [lo], "strength": "strong",
-                    "explanation": f"{c['title']} — Да. Оператор завершил диалог прощанием («{fw}») в последней реплике [{lo}]."}
+            # A farewell alone is not enough (checklist: summary OR offer of help AND farewell) —
+            # whether the closing contains a summary/offer is a semantic judgement left to the LLM.
+            return None
         if end.get("event") == "operator_closed":
             return {"answer": "no", "evidence_ids": [lo, end["message_id"]], "strength": "strong",
                     "explanation": f"{c['title']} — Нет. Оператор закрыл чат [{end['message_id']}] без прощания; "

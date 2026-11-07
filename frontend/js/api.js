@@ -36,6 +36,8 @@ export const api = {
     return request("POST", `/api/conversations/upload?dataset=${encodeURIComponent(dataset || "UPLOAD")}`, fd, true);
   },
   audioUrl: (id) => `${base()}/api/audio/${encodeURIComponent(id)}`,
+  audioAnalysis: (id) => request("GET", `/api/audio/${encodeURIComponent(id)}/analysis`),
+  analyzeAudio: (id) => request("POST", `/api/audio/${encodeURIComponent(id)}/analyze`),
 
   checklists: () => request("GET", "/api/checklists"),
   activeChecklist: () => request("GET", "/api/checklists/active"),

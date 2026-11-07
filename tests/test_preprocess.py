@@ -64,8 +64,11 @@ def _crit(cid):
 def test_closing_autocheck_variants():
     c = _crit("c07_closing")
     base = [("00:00", "client", "q"), ("00:10", "operator", "Здравствуйте, я Ира. Ответ.")]
+    # a farewell alone is not decisive (summary/offer needed) — left to the LLM
     f, _ = facts_of(rec(base + [("00:20", "client", "Спасибо"), ("00:30", "operator", "Пожалуйста. Хорошего дня!")]))
-    assert autochecks.run(c, f)["answer"] == "yes"
+    assert autochecks.run(c, f) is None
+    f, _ = facts_of(rec(base + [("00:20", "client", "Спасибо"), ("00:30", "operator", "Пожалуйста.")]))
+    assert autochecks.run(c, f)["answer"] == "no"
     f, _ = facts_of(rec(base + [("00:20", "client", "Спасибо"), ("00:30", "system", "Соединение с клиентом прервано.")]))
     assert autochecks.run(c, f)["answer"] == "na"
     f, _ = facts_of(rec(base + [("00:20", "client", "А где?"), ("00:30", "system", "Оператор закрыл чат.")]))

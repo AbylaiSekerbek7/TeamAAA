@@ -80,6 +80,13 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value_json TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS audio_analysis (
+    conversation_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    result_json TEXT,
+    error TEXT,
+    updated_at TEXT
+);
 """
 
 
@@ -151,6 +158,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "num_ctx": 8192,
     "think": False,
     "max_tokens": 900,
+    "audio_analysis": True,
+    "whisper_model": "small",
+    "whisper_device": "cpu",
     # The organisers' signed API URL is not committed: set CQA_ORG_API_URL, put it into config.local.json
     # ({"org_api_url": "..."}), or paste it in the UI (Настройки → Источник данных).
     "org_api_url": "",
@@ -463,10 +473,31 @@ def decide_appeal_atomic(appeal_id: int, compute: Any) -> dict | None:
         return {"total_before": total_before, "total_after": final_total}
 
 
+def save_audio_analysis(cid: str, status: str, result: dict | None, error: str | None) -> None:
+    with tx() as con:
+        con.execute(
+            """INSERT INTO audio_analysis(conversation_id, status, result_json, error, updated_at) VALUES (?,?,?,?,?)
+               ON CONFLICT(conversation_id) DO UPDATE SET status=excluded.status, result_json=excluded.result_json,
+               error=excluded.error, updated_at=excluded.updated_at""",
+            (cid, status, json.dumps(result, ensure_ascii=False) if result is not None else None, error, now()),
+        )
+
+
+def get_audio_analysis(cid: str) -> dict | None:
+    with tx() as con:
+        row = con.execute("SELECT * FROM audio_analysis WHERE conversation_id=?", (cid,)).fetchone()
+    d = row_to_dict(row)
+    if d:
+        raw = d.pop("result_json")
+        d["result"] = json.loads(raw) if raw else None
+    return d
+
+
 def fail_interrupted_evaluations() -> int:
     """Evaluations left queued/running by a server restart can never finish (the queue is in memory)."""
     with tx() as con:
         cur = con.execute(
             "UPDATE evaluations SET status='error', error='Прервано перезапуском сервера — запустите оценку снова', finished_at=? "
             "WHERE status IN ('queued','running')", (now(),))
+        con.execute("UPDATE audio_analysis SET status='error', error='Прервано перезапуском сервера' WHERE status='running'")
         return cur.rowcount

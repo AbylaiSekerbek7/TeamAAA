@@ -8,7 +8,7 @@ import traceback
 import uuid
 from typing import Any
 
-from . import db
+from . import audio, db
 from .evaluator import evaluate
 
 _jobs: dict[str, dict[str, Any]] = {}
@@ -114,9 +114,15 @@ def _run() -> None:
             def progress(crit_id: str, i: int, n: int) -> None:
                 job["current_criterion"] = f"{i + 1}/{n}"
 
-            result = evaluate(record, checklist, settings, progress)
+            audio_metrics = None
+            if record.get("audio_url") and settings.get("audio_analysis", True):
+                job["current_criterion"] = "анализ аудио"
+                analysis = audio.ensure_for_evaluation(cid, settings)
+                audio_metrics = (analysis or {}).get("metrics")
+            result = evaluate(record, checklist, settings, progress, audio_metrics=audio_metrics)
+            result["audio_used"] = bool(audio_metrics)
             score = result["score"]
-            status = "done" if not result["errors"] else "done"
+            status = "done"
             db.update_evaluation(
                 eval_id, status=status, finished_at=db.now(), result_json=result,
                 total=score["total"], gross_error=int(score["gross_error"]),

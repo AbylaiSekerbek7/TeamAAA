@@ -8,7 +8,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-002": {
@@ -38,7 +38,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-005": {
@@ -78,7 +78,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-009": {
@@ -108,7 +108,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-012": {
@@ -138,7 +138,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 7,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-015": {
@@ -158,7 +158,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 4,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-017": {
@@ -168,7 +168,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 7,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-018": {
@@ -188,7 +188,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-020": {
@@ -198,7 +198,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-021": {
@@ -208,7 +208,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-022": {
@@ -228,7 +228,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "yes"
   },
   "p1-ru-024": {
@@ -238,7 +238,7 @@
    "c04_consultation": 15,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-025": {
@@ -268,7 +268,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-028": {
@@ -278,7 +278,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-ru-029": {
@@ -288,7 +288,7 @@
    "c04_consultation": 20,
    "c05_empathy": "no",
    "c06_dialog": 4,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "yes"
   },
   "p1-ru-030": {
@@ -298,7 +298,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-001": {
@@ -308,7 +308,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-002": {
@@ -318,7 +318,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-003": {
@@ -338,7 +338,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-005": {
@@ -358,7 +358,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-007": {
@@ -368,7 +368,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-008": {
@@ -388,7 +388,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-010": {
@@ -398,7 +398,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-011": {
@@ -438,7 +438,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-kz-015": {
@@ -458,7 +458,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-002": {
@@ -468,7 +468,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-003": {
@@ -478,7 +478,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-004": {
@@ -488,7 +488,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-005": {
@@ -498,7 +498,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-006": {
@@ -528,7 +528,7 @@
    "c04_consultation": 15,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-009": {
@@ -548,7 +548,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-011": {
@@ -558,7 +558,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-012": {
@@ -568,7 +568,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 10,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p1-en-013": {
@@ -598,7 +598,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 4,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p4-ru-003": {
@@ -618,7 +618,7 @@
    "c04_consultation": 15,
    "c05_empathy": "yes",
    "c06_dialog": 7,
-   "c07_closing": "yes",
+   "c07_closing": "no",
    "c08_gross": "no"
   },
   "p4-ru-001": {
@@ -638,7 +638,7 @@
    "c04_consultation": 20,
    "c05_empathy": "yes",
    "c06_dialog": 7,
-   "c07_closing": "yes",
+   "c07_closing": "na",
    "c08_gross": "no"
   },
   "p4-ru-004": {
@@ -653,6 +653,6 @@
   }
  },
  "notes": {
-  "c07_policy": "Прощание после подтверждения клиента = Да (как в RU/EN-чатах); казахский судья трактовал буквально — отклонено ради единообразия. Открытый вопрос к организаторам."
+  "c07_policy": "Буквально по чек-листу (ответ организаторов «перечитайте чек-лист»): итог ИЛИ предложение помощи И прощание; вежливая формула + прощание = Нет. Переразмечено тремя независимыми классификаторами, единогласно."
  }
 }

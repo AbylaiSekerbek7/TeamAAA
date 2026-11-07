@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from . import audio as audio_mod
 from . import autochecks, datasource, db, jobs, preprocess
 from .evaluator import allowed_answers, answer_label, normalize_answer
 from .llm import make_client
@@ -64,6 +65,8 @@ def put_settings(values: dict = Body(...)):
         values.pop("api_key")
     names = {"temperature": "Temperature", "vote_temperature": "Temperature голосов", "votes": "Голосов",
              "num_ctx": "Контекст", "max_tokens": "Макс. токенов"}
+    if "audio_analysis" in values:
+        values["audio_analysis"] = bool(values["audio_analysis"])
     for k, conv in (("temperature", float), ("vote_temperature", float), ("votes", int), ("num_ctx", int), ("max_tokens", int)):
         if k in values:
             if values[k] in ("", None):
@@ -130,6 +133,27 @@ def conversation(cid: str):
         "facts": facts,
         "evaluations": evals,
     }
+
+
+@app.post("/api/audio/{cid}/analyze")
+def audio_analyze(cid: str):
+    conv = db.get_conversation(cid)
+    if not conv:
+        _err(404, "Диалог не найден")
+    if not conv.get("audio_url"):
+        _err(400, "У диалога нет аудиозаписи")
+    return audio_mod.start_background(cid)
+
+
+@app.get("/api/audio/{cid}/analysis")
+def audio_analysis(cid: str):
+    row = db.get_audio_analysis(cid)
+    if not row:
+        return {"status": "none"}
+    res = row.get("result") or {}
+    return {"status": row["status"], "error": row.get("error"), "updated_at": row.get("updated_at"),
+            "metrics": res.get("metrics"), "segments": res.get("segments"), "vad": res.get("vad"),
+            "audio_t": res.get("audio_t"), "seconds": res.get("seconds"), "whisper_model": res.get("whisper_model")}
 
 
 @app.get("/api/audio/{cid}")

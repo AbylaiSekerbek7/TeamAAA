@@ -98,7 +98,11 @@ def dialog_block(record: dict, norm: dict, facts: dict) -> str:
             f"язык: {record.get('language', '')}")
     voice_note = ("\nЭто расшифровка телефонного звонка (автоматическое распознавание речи): возможны ошибки "
                   "распознавания, обрывки фраз и маскированные данные — оценивай смысл.") if norm.get("is_voice") else ""
-    return (f"{head}{voice_note}\n\nФАКТЫ, вычисленные системой автоматически:\n{preprocess.facts_to_text(facts, norm)}\n\n"
+    facts_text = preprocess.facts_to_text(facts, norm)
+    if facts.get("audio_metrics"):
+        from .audio import metrics_to_text
+        facts_text += "\n" + metrics_to_text(facts["audio_metrics"])
+    return (f"{head}{voice_note}\n\nФАКТЫ, вычисленные системой автоматически:\n{facts_text}\n\n"
             f"ТРАНСКРИПТ (номер реплики, время от начала, роль, текст):\n{preprocess.render_transcript(norm)}")
 
 
@@ -243,10 +247,12 @@ def fit_context(settings: dict, system_prompt: str, dialog_text: str, checklist:
 
 
 def evaluate(record: dict, checklist: dict, settings: dict,
-             progress: Callable[[str, int, int], None] | None = None) -> dict:
+             progress: Callable[[str, int, int], None] | None = None, audio_metrics: dict | None = None) -> dict:
     t0 = time.time()
     norm = preprocess.normalize(record)
     facts = preprocess.compute_facts(record, norm)
+    if audio_metrics:
+        facts["audio_metrics"] = audio_metrics
     client = make_client(settings)
     system_prompt = SYSTEM_PROMPT.format(general_rules=checklist.get("general_rules", "").strip())
     dialog_text = dialog_block(record, norm, facts)

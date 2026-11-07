@@ -86,6 +86,9 @@ export async function renderList(view) {
         </label>
         <button class="btn btn-primary" id="eval-sel" ${state.selected.size ? "" : "disabled"}>Оценить выбранные</button>
         <button class="btn btn-ghost" id="eval-new">Оценить все неоценённые в фильтре</button>
+        <span class="spacer"></span>
+        <a class="btn btn-ghost btn-sm" href="${api.exportUrl("csv", state.dataset === "all" ? "" : state.dataset)}" title="Итоги и ответы по критериям (последняя оценка каждого диалога, с учётом апелляций)">Экспорт CSV</a>
+        <a class="btn btn-ghost btn-sm" href="${api.exportUrl("json", state.dataset === "all" ? "" : state.dataset)}" title="Полный результат: ответы, объяснения, доказательства">Экспорт JSON</a>
       </section>
 
       <div class="table-wrap">

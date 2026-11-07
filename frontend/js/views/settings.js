@@ -40,6 +40,13 @@ export async function renderSettings(view) {
           <h3>Источник данных</h3>
           <label class="field"><span>URL API организаторов (параметр group_id подставляется автоматически)</span>
             <textarea class="input mono small" rows="5" id="org_api_url">${esc(s.org_api_url)}</textarea></label>
+          <h3 class="mt">Анализ аудиозаписей звонков</h3>
+          <label class="toggle"><input type="checkbox" id="audio_analysis" ${s.audio_analysis !== false ? "checked" : ""}> Анализировать запись перед оценкой звонка (дополнительный источник к транскрипту)</label>
+          <div class="ce-row">
+            <label class="field narrow"><span>Модель распознавания (Whisper)</span><select class="input" id="whisper_model">${["tiny", "base", "small", "medium"].map((m) => `<option ${s.whisper_model === m ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+            <label class="field narrow"><span>Устройство</span><select class="input" id="whisper_device">${[["cpu", "CPU"], ["cuda", "GPU (CUDA)"]].map(([v, l]) => `<option value="${v}" ${s.whisper_device === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+          </div>
+          <p class="muted small">Локально и бесплатно: распознавание речи с таймингами слов, разметка пауз по энергии сигнала, темп речи и разборчивость (уверенность распознавания) оператора и клиента, точная привязка реплик транскрипта к записи. Метрики передаются модели как факты для критерия ведения разговора.</p>
           <h3 class="mt">Стоимость оценки</h3>
           <p class="small">${s.provider === "ollama"
             ? "Модель работает локально на GPU: внешних вызовов и оплаты нет — стоимость одной оценки 0 ₽ (только электроэнергия). Одна оценка = по одному вызову модели на каждый критерий × число голосов."
@@ -58,6 +65,7 @@ export async function renderSettings(view) {
           provider: v("provider"), ollama_url: v("ollama_url"), base_url: v("base_url"), api_key: v("api_key"),
           model: v("model"), temperature: v("temperature"), votes: v("votes"), num_ctx: v("num_ctx"),
           think: $("#think", view).checked, org_api_url: v("org_api_url"),
+          audio_analysis: $("#audio_analysis", view).checked, whisper_model: v("whisper_model"), whisper_device: v("whisper_device"),
         });
         h = await api.health();
         toast("Настройки сохранены", "ok");

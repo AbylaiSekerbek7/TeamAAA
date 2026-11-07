@@ -169,8 +169,9 @@ export async function renderCard(view, convId, evalId) {
         <section class="pane transcript-pane">
           ${conv.is_voice ? `<div class="player">
               <audio id="audio" controls preload="none" src="${api.audioUrl(convId)}"></audio>
-              <div class="muted small">Запись звонка. Нажмите ▶ у реплики или на доказательство, чтобы перейти к фрагменту. Время отсчитывается от начала записи.</div>
-            </div>` : ""}
+              <div class="muted small">Запись звонка. Нажмите ▶ у реплики или на доказательство, чтобы перейти к фрагменту.</div>
+            </div>
+            <div id="audio-panel" class="audio-panel"></div>` : ""}
           <div class="transcript" id="transcript">${conv.messages.map((m) => messageHtml(m, conv.is_voice)).join("")}</div>
         </section>
         <section class="pane result-pane">${resultHtml()}</section>
@@ -186,7 +187,76 @@ export async function renderCard(view, convId, evalId) {
     el.classList.add("flash");
     const m = msgs[id];
     const audio = $("#audio", view);
-    if (audio && m && m.t !== null) seek(audio, m.t);
+    if (audio && m && m.t !== null) seek(audio, audioTime(m));
+  }
+
+  // Precise recording offset from the audio analysis (Whisper ↔ transcript alignment); falls back to transcript time.
+  function audioTime(m) {
+    const at = analysis && analysis.audio_t ? analysis.audio_t[String(m.id)] : undefined;
+    return at !== undefined && at !== null ? at : m.t;
+  }
+
+  let analysis = null;
+  let analysisTimer = null;
+  const SPK_COLOR = { operator: "var(--brand-2)", client: "#8a99a3", bot: "#6b8fd6", internal: "#b39ddb", unknown: "#c9d2cd" };
+  const SPK_NAME = { operator: "Оператор", client: "Клиент", bot: "Голосовое меню", internal: "Консультация (удержание)", unknown: "Не определено" };
+
+  async function loadAnalysis() {
+    if (!conv.is_voice) return;
+    try { analysis = await api.audioAnalysis(convId); } catch { analysis = null; }
+    paintAnalysis();
+    clearTimeout(analysisTimer);
+    if (analysis && analysis.status === "running") analysisTimer = setTimeout(loadAnalysis, 4000);
+  }
+
+  function paintAnalysis() {
+    const box = $("#audio-panel", view);
+    if (!box) return;
+    const a = analysis || { status: "none" };
+    if (a.status === "none" || a.status === "error") {
+      box.innerHTML = `<div class="ap-row">
+        <button class="btn btn-sm" id="run-audio">Проанализировать запись</button>
+        <span class="muted small">${a.status === "error" ? `Ошибка анализа: ${esc(a.error || "")}` : "Распознавание речи (Whisper, локально), паузы, темп речи, разборчивость. Выполняется и автоматически перед оценкой звонка."}</span></div>`;
+      $("#run-audio", box).onclick = async () => { await api.analyzeAudio(convId); toast("Анализ записи запущен (≈ 1 мин)", "ok"); loadAnalysis(); };
+      return;
+    }
+    if (a.status === "running") {
+      box.innerHTML = `<div class="ap-row"><span class="spin"></span><span class="small">Идёт анализ записи: распознавание речи и разметка пауз…</span></div>`;
+      return;
+    }
+    const mt = a.metrics;
+    const dur = mt.duration_sec || 1;
+    const segs = (a.segments || []);
+    const tile = (v, l, hint = "") => `<div class="mini-tile" title="${esc(hint)}"><b>${v ?? "—"}</b><span>${l}</span></div>`;
+    const op = mt.operator, cl = mt.client;
+    box.innerHTML = `
+      <div class="mini-tiles">
+        ${tile(op.wpm ? `${op.wpm}` : "—", "слов/мин оператор", "Темп речи оператора по распознаванию с таймингами слов")}
+        ${tile(cl.wpm ? `${cl.wpm}` : "—", "слов/мин клиент")}
+        ${tile(op.confidence !== null ? `${op.confidence}%` : "—", "разборчивость оператора", "Средняя уверенность распознавания слов оператора — косвенная оценка дикции и разборчивости")}
+        ${tile(mt.pauses.length, "пауз ≥ 5 с", "Тишина вне удержания после подключения оператора")}
+        ${tile(`${Math.round(mt.hold_sec)} с`, "на удержании")}
+      </div>
+      <div class="timeline" id="timeline" title="Шкала записи: кто говорит; красные метки — паузы. Нажмите, чтобы перейти к моменту.">
+        ${segs.map((s) => `<span class="tl-seg" style="left:${(s.start / dur) * 100}%;width:${Math.max(0.25, ((s.end - s.start) / dur) * 100)}%;background:${SPK_COLOR[s.speaker] || SPK_COLOR.unknown}" data-at="${s.start}" title="${esc(SPK_NAME[s.speaker] || s.speaker)} ${fmtTime(s.start)}: ${esc(s.text)}"></span>`).join("")}
+        ${mt.pauses.map((p) => `<span class="tl-pause" style="left:${(p.start / dur) * 100}%;width:${Math.max(0.4, (p.sec / dur) * 100)}%" data-at="${p.start}" title="Пауза ${p.sec} с"></span>`).join("")}
+      </div>
+      <div class="tl-legend">${["operator", "client", "bot", "internal"].filter((k) => segs.some((s) => s.speaker === k)).map((k) => `<span><i style="background:${SPK_COLOR[k]}"></i>${SPK_NAME[k]}</span>`).join("")}<span><i class="pause-i"></i>Пауза ≥ 5 с</span></div>
+      ${mt.pauses.length ? `<div class="small">Паузы: ${mt.pauses.map((p) => `<button class="link small" data-at="${p.start}">${fmtTime(p.start)} — ${p.sec} с</button>`).join(", ")}</div>` : ""}
+      <details class="small"><summary>Расшифровка по аудио (Whisper ${esc(a.whisper_model || "")}, ${a.seconds} с) — для сверки с транскриптом</summary>
+        <div class="whisper">${segs.map((s) => `<div><button class="link small mono" data-at="${s.start}">${fmtTime(s.start)}</button> <b style="color:${SPK_COLOR[s.speaker] || "inherit"}">${esc(SPK_NAME[s.speaker] || s.speaker)}:</b> ${esc(s.text)}</div>`).join("")}</div>
+      </details>
+      <div class="muted small">Смещение записи относительно транскрипта найдено автоматически по ${mt.alignment.anchors} совпадениям реплик — переход к реплике точный.</div>`;
+    box.querySelectorAll("[data-at]").forEach((el) => el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const audio = $("#audio", view);
+      if (audio) seek(audio, Number(el.dataset.at));
+    }));
+  }
+
+  function fmtTime(sec) {
+    sec = Math.max(0, Math.round(sec));
+    return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
   }
 
   function seek(audio, t) {
@@ -215,7 +285,12 @@ export async function renderCard(view, convId, evalId) {
     const g = e.target.closest("[data-goto]");
     if (g) { e.preventDefault(); goto(Number(g.dataset.goto)); return; }
     const s = e.target.closest("[data-seek]");
-    if (s) { const a = $("#audio", view); if (a) seek(a, Number(s.dataset.seek)); return; }
+    if (s) {
+      const a = $("#audio", view);
+      const mm = msgs[Number(s.closest("[data-mid]")?.dataset.mid)];
+      if (a) seek(a, mm ? audioTime(mm) : Number(s.dataset.seek));
+      return;
+    }
     const an = e.target.closest("[data-analysis]");
     if (an) { const id = an.dataset.analysis; showAnalysis.has(id) ? showAnalysis.delete(id) : showAnalysis.add(id); repaintResult(); return; }
     const ap = e.target.closest("[data-appeal]");
@@ -254,6 +329,7 @@ export async function renderCard(view, convId, evalId) {
   }
 
   paint();
+  loadAnalysis();
   // Repaint only when THIS dialog's evaluation changes state (not on every tick of a batch),
   // so playback and a half-written appeal are not wiped.
   const seen = new Map();
@@ -268,7 +344,7 @@ export async function renderCard(view, convId, evalId) {
     if (first && item.status === "queued") return;
     if (!["done", "error", "cancelled", "running"].includes(item.status)) return;
     await load();
-    if (alive) paint();
+    if (alive) { paint(); loadAnalysis(); }
   });
-  return { destroy() { alive = false; off(); view.removeEventListener("click", onClick); } };
+  return { destroy() { alive = false; clearTimeout(analysisTimer); off(); view.removeEventListener("click", onClick); } };
 }
