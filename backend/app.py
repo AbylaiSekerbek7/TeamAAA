@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import audio as audio_mod
-from . import autochecks, datasource, db, jobs, preprocess
+from . import autochecks, datasource, db, jobs, preprocess, results_export
 from .evaluator import allowed_answers, answer_label, normalize_answer
 from .llm import make_client
 from .scoring import compute_score
@@ -589,6 +589,44 @@ def export_csv(dataset: str | None = None):
                     *[m.get(k, "") for k in codes], r["total_ai"], r["total_final"], "Да" if r["gross_error"] else "Нет"])
     return Response("﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": "attachment; filename=cqa_results.csv"})
+
+
+def _submission(dataset: str) -> dict:
+    s = db.get_settings()
+    name = s.get("model", "")
+    if s.get("provider") == "ollama":
+        name = f"{name} (Ollama)"
+    if s.get("audio_analysis", True):
+        name += f"; faster-whisper {s.get('whisper_model', 'small')} (анализ аудио)"
+    mode = "local" if s.get("provider") == "ollama" else "external_api"
+    return results_export.build(dataset, s.get("team_name") or "TeamAAA", name, mode)
+
+
+@app.get("/api/results.json")
+def results_json(dataset: str = Query(...)):
+    """Results in the organisers' submission format (JSON 1.0)."""
+    payload = _submission(dataset)
+    return JSONResponse(payload, headers={"Content-Disposition": "attachment; filename=results.json",
+                                          "X-Validation-Errors": str(len(results_export.validate(payload)))})
+
+
+@app.post("/api/results/save")
+def results_save(body: dict = Body(...)):
+    """Write results/<dev|prod>/results.json into the repository (for commit & push)."""
+    dataset = (body.get("dataset") or "").strip()
+    target = body.get("target")
+    if target not in ("dev", "prod"):
+        _err(400, "target: dev или prod")
+    if not dataset:
+        _err(400, "Укажите набор")
+    payload = _submission(dataset)
+    problems = results_export.validate(payload)
+    out = ROOT / "results" / target / "results.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    errors = [r["conversation_id"] for r in payload["results"] if r["status"] == "error"]
+    return {"path": str(out.relative_to(ROOT)).replace("\\", "/"), "records": len(payload["results"]),
+            "errors": errors, "problems": problems}
 
 
 def _load_labels() -> dict[str, dict]:

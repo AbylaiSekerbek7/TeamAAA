@@ -1,1 +1,210 @@
-﻿/* checklists view styles — tokens from ../app.css; see ../../DESIGN.md */
+﻿/* checklists view styles — tokens from ../app.css; see ../../DESIGN.md
+   Everything is scoped under .clx (the view root) because .save-bar / .ce-row are shared with other views. */
+
+/* Hover / dashed borders one step stronger than --line, derived from tokens (no raw hex).
+   Candidate for a shared --line-strong token in app.css. */
+.clx { --clx-line-strong: color-mix(in srgb, var(--line) 62%, var(--muted-2)); }
+
+.clx .page-head { margin-bottom: 18px; flex-wrap: nowrap; align-items: center; }
+.clx .page-head > div:first-child { flex: 1 1 auto; min-width: 0; }
+.clx .page-head .head-actions { flex: none; }
+.clx .page-head .btn .ic { color: var(--muted); }
+.clx .page-head .clx-new .ic { color: var(--brand-strong); }
+.clx-file { position: relative; }
+.clx-file:focus-within { border-color: var(--brand); box-shadow: var(--ring); }
+
+.clx .split { grid-template-columns: 288px minmax(0, 1fr); }
+
+/* Small info icon: the hint lives in its tooltip. */
+.clx-tip { display: inline-grid; place-items: center; flex: none; color: var(--muted-2); cursor: help; vertical-align: middle; }
+.clx-tip:hover { color: var(--muted); }
+.clx-count { min-width: 22px; height: 20px; padding: 0 7px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; cursor: help; }
+
+/* ============================ library (left column) ============================ */
+.clx .split-list { gap: 10px; padding-bottom: 4px; }
+
+.clx-fam { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.clx-fam-head { display: flex; gap: 10px; align-items: flex-start; }
+.clx-fam-ic { width: 32px; height: 32px; flex: none; border-radius: var(--radius); background: var(--surface-3); border: 1px solid var(--line); color: var(--ink-2); display: grid; place-items: center; }
+.clx-fam.is-current .clx-fam-ic { background: var(--brand-50); border-color: var(--brand-100); color: var(--brand-strong); }
+.clx-fam-title { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.clx-fam-title b { font-size: var(--fs); font-weight: 650; line-height: 1.3; color: var(--ink); }
+.clx-fam-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.clx-chan-tag { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: var(--radius-sm); background: var(--surface-3); border: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-2); font-weight: 550; white-space: nowrap; }
+.clx-chan-tag .ic { color: var(--muted); }
+.clx-fam-draft { border-style: dashed; border-color: var(--mid-line); }
+.clx-fam-draft .clx-fam-ic { background: var(--mid-bg); border-color: var(--mid-line); color: var(--mid); }
+
+.clx-vers { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line-2); }
+.clx-ver { text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 8px 10px 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); cursor: pointer; color: var(--ink); transition: border-color .15s var(--ease), background .15s var(--ease); }
+.clx-ver:hover { border-color: var(--clx-line-strong); background: var(--surface); }
+.clx-ver.active { background: var(--brand-50); border-color: var(--brand); box-shadow: inset 3px 0 0 var(--brand); }
+.clx-ver-top { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.clx-ver-top b { font-size: var(--fs-sm); font-weight: 650; white-space: nowrap; }
+.clx-ver-date { margin-right: auto; font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.clx-ver-comment { font-size: var(--fs-xs); color: var(--muted); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================ editor (right column) ============================ */
+.clx .split-detail { background: transparent; border: 0; box-shadow: none; padding: 0; min-height: 0; }
+.clx .field { margin-bottom: 14px; }
+
+.clx-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); margin-bottom: 22px; }
+.clx-card-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line-2); }
+.clx-head-ic { width: 34px; height: 34px; flex: none; border-radius: var(--radius); background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-strong); display: grid; place-items: center; }
+.clx-head-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+.clx-head-title h2 { margin: 0; font-size: var(--fs-md); font-weight: 650; line-height: 1.3; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.clx-ver-pill { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--ink-2); background: var(--surface-3); border: 1px solid var(--line); padding: 1px 6px; border-radius: 5px; cursor: help; }
+.clx-head-actions { flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.clx-head-actions .btn .ic { color: var(--muted); }
+/* While the editor holds unsaved changes the version actions are removed (by paint / markDirty): an info icon
+   explains why, and «Отключить» is hidden too so both paths look the same. Hidden only, the element stays in the DOM. */
+.clx-ver-hint { display: none; place-items: center; color: var(--muted-2); cursor: help; }
+.clx:has(.save-bar > .tag-warn) .clx-ver-hint { display: inline-grid; }
+.clx:has(.save-bar > .tag-warn) #deactivate-cl { display: none; }
+.clx-card-body { padding: 16px 20px 14px; }
+
+.clx-params { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 24px; align-items: start; }
+.clx .field > .clx-lbl { display: inline-flex; align-items: center; gap: 6px; }
+.clx-chan-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.clx-chan { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); font-size: var(--fs-sm); font-weight: 550; cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease); }
+.clx-chan:hover { border-color: var(--clx-line-strong); }
+.clx-chan .ic { color: var(--muted); }
+.clx-chan:has(input:checked) { border-color: var(--brand); background: var(--brand-50); color: var(--brand-strong); }
+.clx-chan:has(input:checked) .ic { color: var(--brand-strong); }
+.clx-chan:focus-within { box-shadow: var(--ring); }
+.clx .clx-chan input { margin: 0; }
+.clx #cl-rules { font-size: var(--fs-sm); line-height: 1.55; }
+
+/* Collapsible blocks (general rules, per-criterion guidance): closed by default to keep the editor calm. */
+.clx-disclose > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 0; border-radius: var(--radius-sm); font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); user-select: none; }
+.clx-disclose > summary::-webkit-details-marker { display: none; }
+.clx-disclose > summary:hover { color: var(--ink); }
+.clx-disclose > summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.clx-disclose > summary > .ic { color: var(--muted); transition: transform .15s var(--ease); }
+.clx-disclose[open] > summary > .ic { transform: rotate(90deg); }
+.clx-disclose > textarea { display: block; margin-top: 8px; }
+
+/* Long rubric text grows with its content instead of hiding behind an inner scrollbar (Chromium/Edge;
+   other browsers fall back to the rows attribute and a vertical resize handle). */
+.clx .clx-grow, .clx .clx-guidance textarea, .clx #cl-rules { field-sizing: content; min-height: 36px; max-height: 220px; }
+.clx #cl-rules { min-height: 96px; max-height: 380px; }
+.clx textarea.clx-grow { padding-top: 7px; padding-bottom: 7px; resize: none; }
+@supports not (field-sizing: content) { .clx textarea.clx-grow { resize: vertical; } }
+
+/* criteria section */
+.clx-sec-head { display: flex; align-items: center; gap: 8px; margin: 0 2px 12px; }
+.clx-sec-head h3 { margin: 0; font-size: var(--fs-md); font-weight: 650; }
+
+/* criterion card */
+.clx .ce-list { gap: 12px; margin-bottom: 0; }
+.clx .ce { padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: border-color .15s var(--ease); }
+.clx .ce:focus-within { border-color: var(--clx-line-strong); }
+.clx .ce.ce-off { opacity: 1; background: var(--surface-2); box-shadow: none; }
+.clx-crit-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line-2); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.clx .clx-code { width: 52px; flex: none; height: 30px; padding: 0 4px; text-align: center; font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600; color: var(--brand-strong); background: var(--brand-50); border-color: var(--brand-200); }
+.clx .is-flag .clx-code { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
+.clx .ce-off .clx-code { color: var(--muted); background: var(--na-bg); border-color: var(--line); }
+.clx .clx-title { flex: 1 1 200px; min-width: 0; height: 34px; padding: 0 8px; border-color: transparent; background: transparent; font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.clx .clx-title:hover { border-color: var(--line); background: var(--surface); }
+.clx .clx-title:focus { border-color: var(--brand); background: var(--surface); }
+.clx .clx-title::placeholder { color: var(--muted-2); font-weight: 500; }
+.clx .ce-off .clx-title { color: var(--muted); }
+.clx-tools { display: flex; align-items: center; gap: 10px; flex: none; padding-left: 12px; border-left: 1px solid var(--line); }
+.clx-move { display: inline-flex; }
+.clx .clx-tools .icon-btn { width: 30px; height: 30px; }
+.clx .clx-move .icon-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.clx .clx-move .icon-btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
+.clx .clx-move .icon-btn:hover { position: relative; z-index: 1; }
+
+/* rule-based auto check: a compact chip in the criterion header (details in its tooltip) */
+.clx-auto { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 2px 0 8px; border-radius: var(--radius-sm); background: var(--info-bg); border: 1px solid var(--info-line); color: var(--info); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; cursor: help; }
+.clx-auto-off { width: 20px; height: 20px; display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--info); cursor: pointer; }
+.clx-auto-off:hover { background: var(--surface); color: var(--ink); }
+.clx-auto-off:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+/* switch (checkbox rendered as a switch; same look as Settings) */
+.clx-switch { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--ink-2); cursor: pointer; white-space: nowrap; user-select: none; }
+.clx .clx-switch input[type="checkbox"] { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 36px; height: 20px; margin: 0; border-radius: 10px; background: var(--muted-2); cursor: pointer; transition: background .15s var(--ease); }
+.clx .clx-switch input[type="checkbox"]::before { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); transition: transform .15s var(--ease); }
+.clx .clx-switch input[type="checkbox"]:checked { background: var(--brand); }
+.clx .clx-switch input[type="checkbox"]:checked::before { transform: translateX(16px); }
+.clx .clx-switch input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.clx-crit-body { padding: 14px 16px 12px; display: grid; gap: 12px; }
+.clx .clx-crit-body .field { margin-bottom: 0; }
+.clx .ce-off .clx-crit-body { opacity: .7; }
+.clx-meta-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 80px auto; gap: 12px; align-items: end; }
+.clx .clx-meta-row select.input { padding-left: 10px; padding-right: 6px; }
+.clx-check { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; white-space: nowrap; transition: border-color .15s var(--ease); }
+.clx-check:hover { border-color: var(--clx-line-strong); }
+.clx-check:has(input:checked) { border-color: var(--brand-200); background: var(--brand-50); color: var(--ink); }
+.clx-check:focus-within { box-shadow: var(--ring); }
+.clx .clx-check input { margin: 0; }
+.clx-check.is-disabled { background: var(--surface-3); color: var(--muted); cursor: not-allowed; }
+
+/* answer rules */
+.clx-rules { display: grid; gap: 8px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--radius); }
+.clx .ce-off .clx-rules { background: var(--surface); }
+.clx .clx-rule { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: start; }
+.clx .clx-rule > .clx-rule-lbl { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); line-height: 1.35; }
+.clx-mk { width: 20px; height: 20px; flex: none; border-radius: 5px; border: 1px solid; display: inline-grid; place-items: center; font-style: normal; }
+.clx-mk-yes { color: var(--good); background: var(--good-bg); border-color: var(--good-line); }
+.clx-mk-no, .clx-mk-flag { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
+.clx-mk-na { color: var(--na); background: var(--na-bg); border-color: var(--line); }
+.clx-mk-what, .clx-mk-scale { color: var(--info); background: var(--info-bg); border-color: var(--info-line); }
+.clx .clx-rule textarea.input, .clx .clx-guidance textarea.input { font-size: var(--fs-sm); line-height: 1.55; }
+
+/* scale steps */
+.clx-scale { display: grid; gap: 6px; }
+.clx-scale-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) 32px; gap: 8px; align-items: start; }
+.clx-scale-row > .icon-btn { margin-top: 2px; }
+.clx .clx-scale-val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.clx .clx-scale-add { color: var(--brand-strong); padding-left: 6px; }
+
+.clx-add { width: 100%; height: 44px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--clx-line-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--brand-strong); font-weight: 600; font-size: var(--fs-sm); cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease); }
+.clx-add:hover { border-color: var(--brand); background: var(--brand-50); }
+
+/* ============================ sticky save bar ============================ */
+/* Two compact rows: status (weights, unsaved tag, activation switch) and actions (comment, save buttons). */
+.clx .save-bar { gap: 8px 14px; padding: 10px 14px; margin-top: 16px; align-items: center; }
+.clx-weights { flex: none; display: grid; grid-auto-flow: column; justify-content: start; align-items: center; gap: 6px; min-height: 28px; font-size: var(--fs-sm); color: var(--ink-2); white-space: nowrap; }
+.clx-weights > b { margin-left: 2px; font-size: var(--fs-md); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.clx-of { color: var(--muted); }
+.clx-weights.is-ok .ic { color: var(--good); }
+.clx-weights.is-warn .ic { color: var(--mid); }
+.clx-weights.is-warn > b { color: var(--mid); }
+.clx-meter { width: 88px; height: 6px; margin-left: 4px; border-radius: 99px; background: var(--line-2); overflow: hidden; }
+.clx-meter > i { display: block; height: 100%; border-radius: 99px; background: var(--brand); transition: width .3s var(--ease); }
+.clx-weights.is-warn .clx-meter > i { background: var(--mid); }
+.clx .save-bar > .tag-warn::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.clx-sb-activate { margin-left: auto; }
+.clx-save-actions { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.clx .clx-save-actions .input { flex: 1 1 260px; min-width: 200px; }
+.clx-save-actions .btn .ic { color: var(--muted); }
+.clx-save-actions .btn-primary .ic { color: inherit; }
+
+/* apply dialog (rendered in a modal outside .clx) */
+.clx-modal-head { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+.clx-modal-head h3 { margin: 0; }
+.clx-modal-actions { justify-content: flex-end; margin-top: 4px; }
+
+/* ============================ responsive ============================ */
+@media (max-width: 1180px) {
+  .clx .split { grid-template-columns: minmax(0, 1fr); }
+  .clx .split-list { max-height: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: start; }
+}
+@media (max-width: 760px) {
+  .clx-params { grid-template-columns: minmax(0, 1fr); }
+  .clx-meta-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clx .clx-rule { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .clx .clx-rule > .clx-rule-lbl { min-height: 0; }
+  .clx-crit-head { flex-wrap: wrap; }
+  .clx-tools { margin-left: auto; padding-left: 0; border-left: 0; }
+  .clx-card-head { flex-wrap: wrap; }
+  .clx-head-actions { flex: 1 1 100%; justify-content: flex-start; }
+  .clx .clx-save-actions .input { flex-basis: 100%; }
+  .clx-save-actions .btn { flex: 1 1 auto; }
+}
+@media (max-width: 1080px) {
+  .clx .page-head { flex-wrap: wrap; }
+}

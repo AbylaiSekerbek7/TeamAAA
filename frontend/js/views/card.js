@@ -1,39 +1,97 @@
 import { api } from "../api.js";
-import { $, $$, SPEAKER, answerChip, answerOptions, answerText, channelLabel, esc, fmtDate, fmtDuration, fmtScore, role, scoreBadge, spinner, toast } from "../ui.js";
+import { icon } from "../icons.js";
+import { $, $$, SPEAKER, answerChip, answerOptions, answerText, channelLabel, esc, fmtDate, fmtDuration, fmtScore, role, scoreClass, spinner, toast } from "../ui.js";
 import { jobs } from "../jobs.js";
 
+// System events of the transcript: icon + tone (colour of the icon only; the text always stays in ink).
 const EVENT_ICON = {
-  escalation: "↪", identity_verified: "🛡", operator_closed: "⏹", client_left: "🚪", connection_lost: "⚡",
-  recording_paused: "⏸", recording_resumed: "⏺", operator_joined: "👤",
+  escalation: "arrowRight", operator_joined: "headphones", identity_verified: "shield", operator_closed: "logOut",
+  client_left: "logOut", connection_lost: "zap", recording_paused: "pause", recording_resumed: "play",
+  hold_start: "pause", hold_end: "play", consult_start: "user", agent_left: "logOut",
+};
+const EVENT_TONE = {
+  identity_verified: "good", connection_lost: "bad", escalation: "info", operator_joined: "info",
+  hold_start: "violet", hold_end: "violet", consult_start: "violet", agent_left: "violet",
+};
+const SPK_ICON = { client: "user", operator: "headphones", bot: "bot" };
+
+// Criterion status derived from the final answer (and the scored fraction for scales).
+const KIND = {
+  good: { icon: "checkCircle", label: "Соответствует" },
+  partial: { icon: "gauge", label: "Частично" },
+  bad: { icon: "xCircle", label: "Не соответствует" },
+  flag: { icon: "alert", label: "Нарушение выявлено" },
+  na: { icon: "minusCircle", label: "Неприменимо" },
+  none: { icon: "info", label: "Не оценён" },
 };
 
+function critKind(c, answer, row) {
+  if (answer === null || answer === undefined) return "none";
+  if (answer === "na") return "na";
+  if (c.type === "flag") return answer === "yes" ? "flag" : "good";
+  if (c.type === "scale") {
+    const f = row && typeof row.fraction === "number" ? row.fraction : null;
+    if (f === null) return "partial";
+    return f >= 1 ? "good" : f <= 0 ? "bad" : "partial";
+  }
+  return answer === "yes" ? "good" : "bad";
+}
+
+function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
+
+// Display-only number formatting (ru-RU decimal comma); non-numeric values pass through unchanged.
+function num(v) {
+  if (v === null || v === undefined || v === "" || typeof v === "boolean") return v;
+  const x = Number(v);
+  return Number.isFinite(x) ? x.toLocaleString("ru-RU") : v;
+}
+
+// Criterion code as a small mono chip followed by its title (instead of «08 · Title»).
+function critLabel(code, title) {
+  return `${code ? `<span class="crit-code">${esc(code)}</span>` : ""}<span>${esc(title)}</span>`;
+}
+
+const EV_STATUS = { queued: "в очереди", running: "выполняется", error: "ошибка", cancelled: "отменена" };
+
 function messageHtml(m, isVoice) {
+  const dup = m.duplicate_of !== null;
   if (m.speaker === "system") {
-    return `<div class="msg msg-system ${m.duplicate_of !== null ? "dup" : ""}" id="m-${m.id}" data-mid="${m.id}">
-      <span class="msg-id">[${m.id}]</span> ${EVENT_ICON[m.event] || "•"} ${esc(m.text)} <span class="msg-time">${esc(m.t_label)}</span>
+    const tone = EVENT_TONE[m.event] || "neutral";
+    return `<div class="msg msg-system cd-sys cd-sys--${tone} ${dup ? "dup" : ""}" id="m-${m.id}" data-mid="${m.id}">
+      <span class="cd-sys-pill">${icon(EVENT_ICON[m.event] || "info", { size: 13 })}<span class="cd-sys-text">${esc(m.text)}</span><span class="msg-time">${esc(m.t_label)}</span><span class="msg-id">[${m.id}]</span></span>
     </div>`;
   }
-  return `<div class="msg msg-${esc(m.speaker)} ${m.duplicate_of !== null ? "dup" : ""} ${m.internal ? "msg-internal" : ""}" id="m-${m.id}" data-mid="${m.id}">
-    <div class="msg-meta">
-      <span class="msg-id">[${m.id}]</span>
-      <b>${esc(SPEAKER[m.speaker] || m.speaker)}</b>${m.internal ? ` <span class="tag" title="Клиент на удержании — оператор консультируется с коллегой">внутр. консультация</span>` : ""}
-      <span class="msg-time" title="${esc(m.timestamp)}">${esc(m.t_label)}</span>
-      ${isVoice && m.t !== null ? `<button class="play-btn" data-seek="${m.t}" title="Прослушать с этого места">▶</button>` : ""}
-      ${m.duplicate_of !== null ? `<span class="muted small">повтор [${m.duplicate_of}]</span>` : ""}
+  const who = SPEAKER[m.speaker] || m.speaker;
+  return `<div class="msg msg-${esc(m.speaker)} ${dup ? "dup" : ""} ${m.internal ? "msg-internal" : ""}" id="m-${m.id}" data-mid="${m.id}">
+    <span class="cd-av cd-av--${esc(m.speaker)}" aria-hidden="true">${icon(SPK_ICON[m.speaker] || "user", { size: 14 })}</span>
+    <div class="cd-bubble">
+      <div class="msg-meta">
+        <b>${esc(who)}</b>
+        <span class="msg-time" title="${esc(m.timestamp)}">${esc(m.t_label)}</span>
+        <span class="msg-id">[${m.id}]</span>
+        ${m.internal ? `<span class="tag tag-violet" title="Клиент на удержании — оператор консультируется с коллегой">${icon("lock", { size: 11 })}Консультация</span>` : ""}
+        ${dup ? `<span class="tag" title="Повтор распознавания реплики [${m.duplicate_of}]">${icon("copy", { size: 11 })}Повтор [${m.duplicate_of}]</span>` : ""}
+        ${isVoice && m.t !== null ? `<button type="button" class="play-btn" data-seek="${m.t}" title="Прослушать с ${esc(m.t_label)}" aria-label="Прослушать запись с ${esc(m.t_label)}">${icon("play", { size: 10 })}</button>` : ""}
+      </div>
+      <div class="msg-text">${esc(m.text)}</div>
     </div>
-    <div class="msg-text">${esc(m.text)}</div>
   </div>`;
 }
 
-function evidenceHtml(ids, msgs, answer) {
-  if (!ids || !ids.length) return `<div class="evidence-empty muted small">Реплика не указана</div>`;
-  const title = answer === "na" ? "Основание N/A" : answer === "no" || answer === 0 ? "Проверенный участок / где ожидалось действие" : "Доказательство";
-  return `<div class="evidence"><div class="evidence-title">${title}</div>${ids.map((id) => {
+function evidenceHtml(ids, msgs) {
+  if (!ids || !ids.length) return `<div class="evidence-empty cd-ev-empty">${icon("info", { size: 13 })}Доказательство не указано</div>`;
+  return `<div class="evidence">${ids.map((id) => {
     const m = msgs[id];
     if (!m) return "";
     const short = m.text.length > 140 ? m.text.slice(0, 140) + "…" : m.text;
-    return `<button class="ev" data-goto="${id}" title="Перейти к реплике">
-      <span class="ev-id">[${id}] ${esc(m.t_label)} · ${esc(SPEAKER[m.speaker] || m.speaker)}</span>
+    return `<button type="button" class="ev" data-goto="${esc(id)}" title="Перейти к реплике [${esc(id)}] в транскрипте">
+      <span class="ev-id">${icon(SPK_ICON[m.speaker] || "info", { size: 12 })}<span class="cd-ev-who">${esc(SPEAKER[m.speaker] || m.speaker)}</span><span class="cd-ev-ref">[${esc(id)}]</span>${m.t_label ? `<span class="cd-ev-t">${esc(m.t_label)}</span>` : ""}${icon("arrowRight", { size: 12, cls: "ev-go" })}</span>
       <span class="ev-text">${esc(short)}</span></button>`;
   }).join("")}</div>`;
 }
@@ -61,40 +119,62 @@ export async function renderCard(view, convId, evalId) {
     const finalAnswer = ov ? ov.answer : r.answer;
     const openAppeal = ev.appeals.find((a) => a.criterion_id === c.id && a.status === "open");
     const decided = ev.appeals.filter((a) => a.criterion_id === c.id && a.status === "decided");
-    const pts = c.type === "flag" ? `<span class="muted small">без баллов</span>`
-      : row.applicable ? `<span class="pts"><b>${fmtScore(row.points)}</b> / ${fmtScore(row.effective_weight)} б.</span><span class="muted small" title="Базовый вес из чек-листа и вес после перераспределения N/A">вес ${c.weight}${row.effective_weight !== c.weight ? ` → ${fmtScore(row.effective_weight)}` : ""}</span>`
-      : `<span class="muted small">исключён из расчёта (вес ${c.weight} перераспределён)</span>`;
-    return `<article class="crit ${finalAnswer === "na" ? "crit-na" : ""} ${c.type === "flag" && finalAnswer === "yes" ? "crit-flag" : ""}" id="crit-${esc(c.id)}">
+    const kind = critKind(c, finalAnswer, row);
+    const k = KIND[kind];
+    // Weight / rule / vote details live in a tooltip; only points (and a low-confidence warning) stay visible.
+    const hasConf = r.confidence !== undefined && r.votes && r.votes.length > 1;
+    const tip = [
+      c.type === "flag" ? "" : row.applicable ? `Вес ${c.weight}${row.effective_weight !== c.weight ? ` → ${fmtScore(row.effective_weight)}` : ""}` : `Вес ${c.weight} перераспределён (N/A)`,
+      hasConf ? `Уверенность ${Math.round(r.confidence * 100)}% (${r.votes.join(", ")})` : "",
+    ].filter(Boolean).join(" · ");
+    const pts = c.type === "flag" ? `<span class="cd-weight">без баллов</span>`
+      : row.applicable ? `<span class="pts"><b>${fmtScore(row.points)}</b> / ${fmtScore(row.effective_weight)} б.</span>`
+      : `<span class="cd-weight">исключён</span>`;
+    const open = showAnalysis.has(c.id);
+    const analysisBtn = r.analysis ? `<button type="button" class="link small cd-toggle" data-analysis="${esc(c.id)}" aria-expanded="${open}">${icon(open ? "chevronDown" : "chevronRight", { size: 14 })}Ход рассуждения</button>` : "";
+    const appealPart = openAppeal
+      ? `<span class="tag tag-warn">${icon("scale", { size: 12 })}Апелляция #${openAppeal.id}</span><a class="link small cd-appeal-link" href="#/appeals?id=${openAppeal.id}">${role() === "reviewer" ? "Рассмотреть" : "Открыть"}${icon("arrowRight", { size: 13 })}</a>`
+      : role() === "supervisor" ? `<button type="button" class="btn btn-ghost btn-sm cd-appeal" data-appeal="${esc(c.id)}" title="Подать апелляцию на оценку критерия">${icon("scale", { size: 14 })}Оспорить</button>` : "";
+    return `<article class="crit cd-crit cd-k-${kind} ${finalAnswer === "na" ? "crit-na" : ""} ${c.type === "flag" && finalAnswer === "yes" ? "crit-flag" : ""}" id="crit-${esc(c.id)}">
       <header class="crit-head">
-        <span class="crit-code">${esc(c.code || "")}</span>
-        <h4>${esc(c.title)}</h4>
+        <span class="cd-crit-ic" title="${k.label}">${icon(k.icon, { size: 18 })}<span class="sr-only">${k.label}</span></span>
+        <div class="cd-crit-title">
+          ${c.code ? `<span class="crit-code">${esc(c.code)}</span>` : ""}
+          <h4>${esc(c.title)}</h4>
+        </div>
         <div class="crit-answer">
-          ${ov ? `<span class="strike" title="Исходная оценка ИИ">${esc(answerText(c, r.answer))}</span> → ` : ""}
+          ${ov ? `<span class="strike" title="Исходная оценка ИИ">${esc(answerText(c, r.answer))}</span>${icon("arrowRight", { size: 12, cls: "cd-ans-arrow" })}` : ""}
           ${answerChip(finalAnswer, answerText(c, finalAnswer), c.type)}
         </div>
       </header>
-      <div class="crit-points">${pts}${r.source === "rule" ? `<span class="conf" title="Критерий формальный: проверен детерминированным правилом по ключевым словам и системным событиям">⚙ проверено правилом</span>` : ""}${r.confidence !== undefined && r.votes && r.votes.length > 1 ? `<span class="conf ${r.confidence < 1 ? "conf-low" : ""}" title="Согласие голосов модели: ${esc(r.votes.join(", "))}">уверенность ${Math.round(r.confidence * 100)}%</span>` : ""}</div>
-      <p class="crit-expl">${esc(r.explanation || "")}</p>
-      ${evidenceHtml(r.evidence_ids, msgs, finalAnswer)}
-      ${r.analysis ? `<button class="link small" data-analysis="${esc(c.id)}">${showAnalysis.has(c.id) ? "Скрыть ход рассуждения" : "Показать ход рассуждения модели"}</button>
-        ${showAnalysis.has(c.id) ? `<p class="analysis">${esc(r.analysis)}</p>` : ""}` : ""}
-      ${ov ? `<div class="override">✎ Изменено проверяющим (${esc(ov.reviewer || "")}): <b>${esc(answerText(c, ov.previous))} → ${esc(answerText(c, ov.answer))}</b>. Причина: ${esc(ov.reason)}</div>` : ""}
-      ${decided.filter((a) => a.decision === "confirm").map((a) => `<div class="override confirm">✔ Апелляция #${a.id} отклонена, оценка подтверждена. Причина: ${esc(a.reviewer_comment)}</div>`).join("")}
-      <footer class="crit-foot">
-        ${openAppeal ? `<span class="tag tag-warn">На апелляции #${openAppeal.id}</span> <a class="link small" href="#/appeals?id=${openAppeal.id}">${role() === "reviewer" ? "Рассмотреть" : "Открыть"}</a>`
-          : role() === "supervisor" ? `<button class="btn btn-ghost btn-sm" data-appeal="${esc(c.id)}">Оспорить</button>` : ""}
-      </footer>
+      <div class="crit-points" title="${esc(tip)}">${pts}${r.source === "rule" ? `<span class="conf" title="Критерий формальный: проверен детерминированным правилом по ключевым словам и системным событиям">${icon("settings", { size: 11 })}правило</span>` : ""}${hasConf && r.confidence < 1 ? `<span class="conf conf-low" title="Согласие голосов модели: ${esc(r.votes.join(", "))}">${icon("gauge", { size: 11 })}${Math.round(r.confidence * 100)}%</span>` : ""}</div>
+      ${r.explanation ? `<p class="crit-expl">${esc(r.explanation)}</p>` : ""}
+      ${evidenceHtml(r.evidence_ids, msgs)}
+      ${ov ? `<div class="override cd-note" title="Изменено проверяющим: ${esc(answerText(c, ov.previous))} → ${esc(answerText(c, ov.answer))}">${icon("edit", { size: 14 })}<div><b>${esc(ov.reviewer || "Проверяющий")}:</b> ${esc(ov.reason)}</div></div>` : ""}
+      ${decided.filter((a) => a.decision === "confirm").map((a) => `<div class="override confirm cd-note" title="Апелляция отклонена, оценка подтверждена">${icon("checkCircle", { size: 14 })}<div><b>Апелляция #${a.id} отклонена:</b> ${esc(a.reviewer_comment)}</div></div>`).join("")}
+      ${analysisBtn || appealPart ? `<footer class="crit-foot">${analysisBtn}<div class="cd-foot-actions">${appealPart}</div></footer>` : ""}
+      ${r.analysis && open ? `<p class="analysis">${esc(r.analysis)}</p>` : ""}
       <div class="appeal-form" id="af-${esc(c.id)}" hidden></div>
     </article>`;
   }
 
+  function resultHead(extra = "") {
+    return `<div class="cd-pane-head cd-rhead"><h2>${icon("clipboard", { size: 17 })}Оценка</h2>${extra}</div>`;
+  }
+
   function resultHtml() {
     if (!ev) {
-      return `<div class="empty"><h3>Диалог ещё не оценён</h3><p>Выберите чек-лист и запустите оценку — модель проверит каждый критерий и укажет реплики-доказательства.</p></div>`;
+      return `${resultHead()}<div class="cd-empty">
+        <span class="cd-empty-ic">${icon("clipboard", { size: 22 })}</span>
+        <h3>Диалог не оценён</h3>
+        <button type="button" class="btn btn-primary btn-sm" data-run-eval>${icon("play", { size: 14 })}Оценить</button></div>`;
     }
     if (ev.status !== "done") {
       const busy = ["queued", "running"].includes(ev.status) || jobs.isBusy(convId);
-      return `<div class="empty">${busy ? `<span class="spin"></span><h3>Оценка выполняется…</h3><p>Результат появится автоматически.</p>` : `<h3>Оценка не завершена</h3><p>${esc(ev.error || ev.status)}</p>`}</div>`;
+      return `${resultHead()}
+        <div class="cd-empty">${busy
+          ? `<span class="spin cd-spin-lg"></span><h3>Оценка выполняется…</h3>`
+          : `<span class="cd-empty-ic cd-empty-ic--bad">${icon("alert", { size: 22 })}</span><h3>Оценка не завершена</h3><p>${esc(ev.error || ev.status)}</p>`}</div>`;
     }
     const cl = ev.checklist.data;
     const score = ev.final_score || ev.result.score;
@@ -105,45 +185,102 @@ export async function renderCard(view, convId, evalId) {
     const finalAns = (c) => (overrides[c.id] ? overrides[c.id].answer : (ev.result.criteria[c.id] || {}).answer);
     const naCount = crits.filter((c) => finalAns(c) === "na").length;
     const missing = score.missing || [];
-    return `
-      ${missing.length ? `<div class="override">⚠ Модель не смогла оценить: ${missing.map((id) => esc((crits.find((c) => c.id === id) || {}).title || id)).join(", ")}. Итог не рассчитан — запустите переоценку или задайте оценку через апелляцию.</div>` : ""}
-      <div class="summary">
-        <div class="summary-score">
-          <div class="big">${scoreBadge(ev.final_total, "score-xl")}</div>
-          <div class="summary-cap">${score.total_calculated ? "итоговый балл из 100" : missing.length ? "итог не рассчитан — есть неоценённые критерии" : "итог не рассчитывается — нет применимых критериев"}</div>
-          ${changed ? `<div class="small">ИИ: <span class="strike">${fmtScore(ev.total)}</span> → после апелляции: <b>${fmtScore(ev.final_total)}</b></div>` : ""}
+
+    const openAppeals = ev.appeals.filter((a) => a.status === "open").length;
+    const status = openAppeals ? `<span class="tag tag-warn">${icon("scale", { size: 12 })}На апелляции</span>`
+      : Object.keys(overrides).length ? `<span class="tag tag-violet">${icon("edit", { size: 12 })}Скорректирована</span>`
+        : `<span class="tag tag-ok">${icon("check", { size: 12 })}Оценён</span>`;
+
+    const total = ev.final_total;
+    const tone = scoreClass(total).replace("s-", "");
+    const pct = total === null || total === undefined ? 0 : Math.max(0, Math.min(100, Number(total)));
+    const grossRaw = score.gross_error_criteria;
+    const grossIds = Array.isArray(grossRaw) ? grossRaw : grossRaw ? [grossRaw] : [];
+    const grossNames = grossIds.map((id) => {
+      const cc = cl.criteria.find((x) => x.id === id);
+      return `<span class="cd-gross-i">${cc ? critLabel(cc.code, cc.title) : `<span>${esc(id)}</span>`}</span>`;
+    });
+    const tokens = (ev.result.prompt_tokens + ev.result.completion_tokens).toLocaleString("ru-RU");
+    const when = fmtDate(ev.finished_at) || "—";
+    const took = fmtDuration((ev.result.duration_ms || 0) / 1000);
+
+    const tally = { good: 0, partial: 0, bad: 0, na: 0 };
+    crits.forEach((c) => {
+      const kd = critKind(c, finalAns(c), score.criteria[c.id]);
+      if (kd === "flag") tally.bad++;
+      else if (kd in tally) tally[kd]++;
+    });
+    // Verb agrees with the number: «1 соответствует», «8 соответствуют».
+    const agree = (n, one, many) => (n % 10 === 1 && n % 100 !== 11 ? one : many);
+    const tallyHtml = [
+      ["good", "checkCircle", (n) => agree(n, "соответствует", "соответствуют")], ["partial", "gauge", () => "частично"],
+      ["bad", "xCircle", (n) => agree(n, "не соответствует", "не соответствуют")], ["na", "minusCircle", () => "N/A"],
+    ].filter(([key]) => tally[key]).map(([key, ic, l]) => `<span class="cd-tally-i cd-k-${key}" title="${tally[key]} ${l(tally[key])}">${icon(ic, { size: 12 })}<b>${tally[key]}</b><span class="sr-only">${l(tally[key])}</span></span>`).join("");
+
+    return `${resultHead(`<span class="cd-rhead-id">#${ev.id}</span><span class="spacer"></span>${status}`)}
+      <div class="cd-rbody">
+      ${missing.length ? `<div class="cd-callout cd-callout--warn" role="status">${icon("alert", { size: 16 })}<div>Не оценены: ${missing.map((id) => esc((crits.find((c) => c.id === id) || {}).title || id)).join(", ")}</div></div>` : ""}
+      <div class="cd-summary">
+        <div class="cd-ring cd-ring--${tone}" style="--p:${pct}" role="img" aria-label="Итоговый балл: ${fmtScore(total)} из 100" title="Итоговый балл">
+          <div class="cd-ring-in"><b class="${fmtScore(total).length > 3 ? "cd-ring-long" : ""}">${fmtScore(total)}</b><span>из 100</span></div>
         </div>
-        <div class="summary-side">
-          ${score.gross_error ? `<div class="gross">⚠ Грубая ошибка</div>` : `<div class="gross-ok">Грубых ошибок нет</div>`}
-          <div class="small muted">N/A: ${naCount} · применимый вес ${fmtScore(score.applicable_weight)} → нормирован до 100</div>
-          <div class="small muted">${esc(ev.checklist.name)} v${ev.checklist.version} · ${esc(ev.model || "")}</div>
-          <div class="small muted">${fmtDate(ev.finished_at)} · ${fmtDuration((ev.result.duration_ms || 0) / 1000)} · ${(ev.result.prompt_tokens + ev.result.completion_tokens).toLocaleString("ru-RU")} токенов</div>
+        <div class="cd-sum-side">
+          ${score.gross_error
+            ? `<div class="cd-verdict cd-verdict--bad">${icon("alert", { size: 18 })}<div><b>Грубая ошибка</b>${grossNames.length ? `<span class="cd-gross">${grossNames.join("")}</span>` : ""}</div></div>`
+            : `<div class="cd-verdict cd-verdict--ok">${icon("shield", { size: 18 })}<div><b>Грубых ошибок нет</b></div></div>`}
+          ${!score.total_calculated ? `<div class="cd-sum-note">${icon("info", { size: 13 })}${missing.length ? "Итог не рассчитан" : "Нет применимых критериев"}</div>` : ""}
+          ${changed ? `<div class="cd-changed" title="Изменено по апелляции: ИИ ${fmtScore(ev.total)} → ${fmtScore(ev.final_total)}">${icon("scale", { size: 14 })}<span>По апелляции: <span class="cd-nowrap"><span class="strike">${fmtScore(ev.total)}</span> → <b>${fmtScore(ev.final_total)}</b></span></span></div>` : ""}
+          <div class="cd-sum-meta">
+            <span title="Чек-лист">${icon("clipboard", { size: 13 })}<span class="cd-sum-cl">${esc(ev.checklist.name)} v${esc(ev.checklist.version)}</span></span>
+            <span title="Оценено">${icon("clock", { size: 13 })}${esc(when)}</span>
+          </div>
         </div>
       </div>
-      ${sections.length ? `<div class="sections">${sections.map((s) => `
-        <div class="section-row">
-          <span>${esc(s.section)}</span>
-          <div class="bar"><div style="width:${s.percent ?? 0}%"></div></div>
-          <span class="mono small">${s.points === null ? "N/A" : `${fmtScore(s.points)} / ${fmtScore(s.max_points)}`}</span>
-        </div>`).join("")}</div>` : ""}
-      <div class="crits">${crits.map(criterionCard).join("")}</div>
-      <details class="facts"><summary>Факты, извлечённые системой автоматически (подсказки для модели)</summary>
-        <ul>${factsList(conv.facts)}</ul></details>`;
+      ${sections.length ? `<section class="cd-block" aria-label="Разделы чек-листа">
+        <h3 class="cd-block-title">${icon("layers", { size: 14 })}Разделы</h3>
+        <div class="cd-secs">${sections.map((s) => {
+          const p = s.percent ?? 0;
+          const st = s.points === null ? "none" : scoreClass(p).replace("s-", "");
+          return `<div class="cd-sec" title="${s.points === null ? "N/A" : `${fmtScore(s.points)} / ${fmtScore(s.max_points)} б.`}">
+            <span class="cd-sec-name">${esc(s.section)}</span>
+            <div class="cd-bar cd-bar--${st}" aria-hidden="true"><i style="width:${p}%"></i></div>
+            <span class="cd-sec-pct">${s.points === null ? "N/A" : `${Math.round(p)}%`}</span>
+          </div>`;
+        }).join("")}</div></section>` : ""}
+      <section class="cd-block" aria-label="Критерии">
+        <div class="cd-block-row">
+          <h3 class="cd-block-title">${icon("list", { size: 14 })}Критерии <span class="cd-count">${crits.length}</span></h3>
+          <div class="cd-tally">${tallyHtml}</div>
+        </div>
+        <div class="crits">${crits.map(criterionCard).join("")}</div>
+      </section>
+      <details class="cd-facts"><summary>${icon("chevronRight", { size: 14, cls: "cd-chev" })}<span>Подробнее</span></summary>
+        <div class="cd-more">
+          <dl class="cd-kv">
+            <div class="cd-kv-model"><dt>Модель</dt><dd title="${esc(ev.model || "")}">${esc(ev.model || "—")}</dd></div>
+            <div><dt>Токены</dt><dd>${tokens}</dd></div>
+            <div title="Время работы модели над оценкой"><dt>Длительность</dt><dd>${esc(took)}</dd></div>
+            <div><dt>Критериев N/A</dt><dd>${naCount}</dd></div>
+            <div title="Вес неприменимых (N/A) критериев перераспределяется между остальными, итог нормируется до 100"><dt>Применимый вес</dt><dd>${fmtScore(score.applicable_weight)}</dd></div>
+          </dl>
+          <ul class="cd-facts-list" title="Факты, извлечённые системой автоматически (подсказки для модели)">${factsList(conv.facts)}</ul>
+        </div></details>
+      </div>`;
   }
 
+  // Facts extracted automatically (hints for the model); the dialog duration is already in the page head.
   function factsList(f) {
+    const ref = (id) => `<a class="link" data-goto="${id}">[${id}]</a>`;
     const items = [];
-    items.push(`Язык клиента: <b>${esc(f.client_language || "—")}</b>; первая реплика оператора: ${f.first_operator_message_id !== null ? `<a class="link" data-goto="${f.first_operator_message_id}">[${f.first_operator_message_id}]</a>` : "нет"}`);
-    items.push(`Подтверждение личности: ${f.identity_verified_ids.length ? f.identity_verified_ids.map((i) => `<a class="link" data-goto="${i}">[${i}]</a>`).join(", ") : "нет"}`);
-    if (f.ending) items.push(`Завершение: <a class="link" data-goto="${f.ending.message_id}">[${f.ending.message_id}]</a> ${esc(f.ending.label)}`);
-    f.long_operator_gaps.forEach((g) => items.push(`Пауза ${g.seconds} с перед ответом оператора <a class="link" data-goto="${g.operator_id}">[${g.operator_id}]</a>`));
+    items.push(`Язык клиента: <b>${esc(f.client_language || "—")}</b>`);
+    items.push(`Первая реплика оператора: ${f.first_operator_message_id !== null ? ref(f.first_operator_message_id) : "нет"}`);
+    items.push(`Подтверждение личности: ${f.identity_verified_ids.length ? f.identity_verified_ids.map(ref).join(", ") : "нет"}`);
+    if (f.ending) items.push(`Завершение: ${ref(f.ending.message_id)} ${esc(f.ending.label)}`);
+    f.long_operator_gaps.forEach((g) => items.push(`Пауза ${esc(num(g.seconds))} с перед ${ref(g.operator_id)}`));
     if (f.duplicates.length) items.push(`Повторы распознавания: ${f.duplicates.length}`);
-    if (f.internal_ids && f.internal_ids.length) items.push(`Внутренняя консультация с коллегой (клиент на удержании): [${f.internal_ids[0]}]–[${f.internal_ids[f.internal_ids.length - 1]}]`);
+    if (f.internal_ids && f.internal_ids.length) items.push(`Консультация с коллегой: [${f.internal_ids[0]}]–[${f.internal_ids[f.internal_ids.length - 1]}]`);
     const cm = f.call_metrics;
-    if (cm) items.push(`<b>Метрики звонка</b> (по таймингам распознавания): длительность ${fmtDuration(cm.duration_sec)}, на удержании ${cm.hold_sec} с,
-      доля речи оператора ${cm.operator_share}%${cm.operator_wpm ? `, темп речи оператора ≈ ${cm.operator_wpm} слов/мин` : ""},
-      самая длинная пауза вне удержания ${cm.longest_silence_sec} с${cm.longest_silence_before_id !== null ? ` (перед <a class="link" data-goto="${cm.longest_silence_before_id}">[${cm.longest_silence_before_id}]</a>)` : ""}`);
-    if (f.duration_sec) items.push(`Длительность: ${fmtDuration(f.duration_sec)}`);
+    if (cm) items.push(`Звонок: удержание ${esc(num(cm.hold_sec))} с, речь оператора ${esc(num(cm.operator_share))}%${cm.operator_wpm ? `, темп ≈ ${esc(num(cm.operator_wpm))} сл/мин` : ""}, макс. пауза ${esc(num(cm.longest_silence_sec))} с${cm.longest_silence_before_id !== null ? ` (перед ${ref(cm.longest_silence_before_id)})` : ""}`);
     return items.map((i) => `<li>${i}</li>`).join("");
   }
 
@@ -151,31 +288,47 @@ export async function renderCard(view, convId, evalId) {
     const c = conv.conversation;
     const evs = conv.evaluations;
     const activeId = checklists.find((x) => x.is_active)?.id;
-    view.innerHTML = `
-      <section class="card-head">
-        <a href="#/" class="link">← Все диалоги</a>
-        <div class="card-title">
-          <h1 class="mono">${esc(c.id)}</h1>
-          <span class="tag">${channelLabel(c.channel)}</span><span class="tag">${esc(c.language || "")}</span><span class="tag">${esc(c.dataset || "")}</span>
-          <span class="muted small">${conv.messages.length} реплик</span>
+    const isCall = channelLabel(c.channel) === "Звонок";
+    const f = conv.facts || {};
+    const dur = f.duration_sec ? fmtDuration(f.duration_sec) : "";
+    const n = conv.messages.length;
+    const replies = `${n} ${plural(n, "реплика", "реплики", "реплик")}`;
+    view.innerHTML = `<div class="cd">
+      <section class="cd-head" aria-label="Диалог">
+        <div class="cd-head-main">
+          <a href="#/" class="cd-back" title="Вернуться к списку диалогов" aria-label="Вернуться к списку диалогов">${icon("arrowLeft", { size: 18 })}</a>
+          <span class="cd-title-ic" aria-hidden="true">${icon(isCall ? "phone" : "message", { size: 20 })}</span>
+          <div class="cd-title">
+            <h1 class="cd-id"${c.dataset ? ` title="Набор данных: ${esc(c.dataset)}"` : ""}>${esc(c.id)}</h1>
+            <ul class="cd-meta">
+              <li title="Канал">${esc(channelLabel(c.channel))}</li>
+              ${c.language ? `<li title="Язык диалога">${esc(c.language)}</li>` : ""}
+              ${dur ? `<li title="Длительность диалога, ${replies}">${esc(dur)}</li>` : `<li>${replies}</li>`}
+            </ul>
+          </div>
         </div>
-        <div class="card-actions">
-          ${evs.length > 1 ? `<select id="ev-select" class="input input-sm" aria-label="История оценок">${evs.map((e) => `<option value="${e.id}" ${ev && e.id === ev.id ? "selected" : ""}>Оценка #${e.id} · ${fmtDate(e.finished_at || e.created_at)} · ${e.status === "done" ? fmtScore(e.final_total) : e.status}</option>`).join("")}</select>` : ""}
-          <select id="cl-select" class="input input-sm" aria-label="Чек-лист"><option value="auto" selected>Авто: чек-лист по каналу</option>${checklists.map((x) => `<option value="${x.id}">${esc(x.name)} v${x.version}${x.is_active ? " (активный)" : ""}</option>`).join("")}</select>
-          <button class="btn btn-primary" id="run-eval">${ev ? "Переоценить" : "Оценить"}</button>
+        <div class="cd-actions">
+          ${evs.length > 1 ? `<select id="ev-select" class="input input-sm cd-sel" aria-label="История оценок" title="История оценок">${evs.map((e) => `<option value="${e.id}" ${ev && e.id === ev.id ? "selected" : ""}>#${e.id} · ${fmtDate(e.finished_at || e.created_at)} · ${e.status === "done" ? fmtScore(e.final_total) : esc(EV_STATUS[e.status] || e.status)}</option>`).join("")}</select>` : ""}
+          <select id="cl-select" class="input input-sm cd-sel" aria-label="Чек-лист" title="Чек-лист для оценки"><option value="auto" selected>Чек-лист: авто</option>${checklists.map((x) => `<option value="${x.id}">${esc(x.name)} v${esc(x.version)}${x.is_active ? " (активный)" : ""}</option>`).join("")}</select>
+          <button type="button" class="btn btn-primary" id="run-eval">${icon(ev ? "refresh" : "play", { size: 15 })}${ev ? "Переоценить" : "Оценить"}</button>
         </div>
       </section>
-      <div class="card-grid">
-        <section class="pane transcript-pane">
-          ${conv.is_voice ? `<div class="player">
-              <audio id="audio" controls preload="none" src="${api.audioUrl(convId)}"></audio>
-              <div class="muted small">Запись звонка. Нажмите ▶ у реплики или на доказательство, чтобы перейти к фрагменту.</div>
+      <div class="card-grid cd-grid">
+        <section class="pane transcript-pane" aria-label="Транскрипт диалога">
+          <div class="cd-ttop">
+            <div class="cd-pane-head">
+              <h2>${icon("message", { size: 17 })}Транскрипт</h2>
             </div>
-            <div id="audio-panel" class="audio-panel"></div>` : ""}
+            ${conv.is_voice ? `<div class="player">
+              <audio id="audio" controls preload="none" src="${esc(api.audioUrl(convId))}"></audio>
+            </div>` : ""}
+          </div>
+          ${conv.is_voice ? `<div id="audio-panel" class="audio-panel"></div>` : ""}
           <div class="transcript" id="transcript">${conv.messages.map((m) => messageHtml(m, conv.is_voice)).join("")}</div>
         </section>
-        <section class="pane result-pane">${resultHtml()}</section>
-      </div>`;
+        <section class="pane result-pane" aria-label="Результат оценки">${resultHtml()}</section>
+      </div>
+    </div>`;
     bind();
   }
 
@@ -198,8 +351,9 @@ export async function renderCard(view, convId, evalId) {
 
   let analysis = null;
   let analysisTimer = null;
-  const SPK_COLOR = { operator: "var(--brand-2)", client: "#8a99a3", bot: "#6b8fd6", internal: "#b39ddb", unknown: "#c9d2cd" };
-  const SPK_NAME = { operator: "Оператор", client: "Клиент", bot: "Голосовое меню", internal: "Консультация (удержание)", unknown: "Не определено" };
+  // Timeline speaker colours (validated categorical set: brand / info / light violet; client is the neutral party).
+  const SPK_COLOR = { operator: "var(--brand)", client: "var(--muted)", bot: "var(--info)", internal: "color-mix(in srgb, var(--violet) 60%, var(--surface))", unknown: "var(--muted-2)" };
+  const SPK_NAME = { operator: "Оператор", client: "Клиент", bot: "Голосовое меню", internal: "Консультация", unknown: "Не определено" };
 
   async function loadAnalysis() {
     if (!conv.is_voice) return;
@@ -214,39 +368,47 @@ export async function renderCard(view, convId, evalId) {
     if (!box) return;
     const a = analysis || { status: "none" };
     if (a.status === "none" || a.status === "error") {
-      box.innerHTML = `<div class="ap-row">
-        <button class="btn btn-sm" id="run-audio">Проанализировать запись</button>
-        <span class="muted small">${a.status === "error" ? `Ошибка анализа: ${esc(a.error || "")}` : "Распознавание речи (Whisper, локально), паузы, темп речи, разборчивость. Выполняется и автоматически перед оценкой звонка."}</span></div>`;
+      const err = a.status === "error";
+      box.innerHTML = `<div class="cd-ap-cta ${err ? "cd-ap-cta--err" : ""}">
+        <span class="cd-ap-ic">${icon(err ? "alert" : "waveform", { size: 18 })}</span>
+        <div class="cd-ap-cta-text"><b>${err ? "Ошибка анализа записи" : "Запись не проанализирована"}</b>${err ? `<span>${esc(a.error || "")}</span>` : ""}</div>
+        <button type="button" class="btn btn-sm" id="run-audio" title="Распознавание речи (Whisper, локально), паузы, темп речи, разборчивость. Выполняется и автоматически перед оценкой звонка.">${icon(err ? "refresh" : "waveform", { size: 14 })}${err ? "Повторить" : "Анализировать"}</button></div>`;
       $("#run-audio", box).onclick = async () => { await api.analyzeAudio(convId); toast("Анализ записи запущен (≈ 1 мин)", "ok"); loadAnalysis(); };
       return;
     }
     if (a.status === "running") {
-      box.innerHTML = `<div class="ap-row"><span class="spin"></span><span class="small">Идёт анализ записи: распознавание речи и разметка пауз…</span></div>`;
+      box.innerHTML = `<div class="cd-ap-cta"><span class="cd-ap-ic"><span class="spin"></span></span><div class="cd-ap-cta-text"><b>Идёт анализ записи…</b></div></div>`;
       return;
     }
     const mt = a.metrics;
     const dur = mt.duration_sec || 1;
     const segs = (a.segments || []);
-    const tile = (v, l, hint = "") => `<div class="mini-tile" title="${esc(hint)}"><b>${v ?? "—"}</b><span>${l}</span></div>`;
+    const has = (v) => v !== null && v !== undefined && v !== "—";
+    // Labels are static markup (may contain a soft hyphen); values are escaped.
+    const tile = (ic, v, unit, l, hint = "") => `<div class="mini-tile" title="${esc(hint)}"><b>${has(v) ? esc(num(v)) : "—"}${has(v) && unit ? `<small>${unit}</small>` : ""}</b><span class="cd-tile-l">${icon(ic, { size: 12 })}<span>${l}</span></span></div>`;
     const op = mt.operator, cl = mt.client;
     box.innerHTML = `
-      <div class="mini-tiles">
-        ${tile(op.wpm ? `${op.wpm}` : "—", "слов/мин оператор", "Темп речи оператора по распознаванию с таймингами слов")}
-        ${tile(cl.wpm ? `${cl.wpm}` : "—", "слов/мин клиент")}
-        ${tile(op.confidence !== null ? `${op.confidence}%` : "—", "разборчивость оператора", "Средняя уверенность распознавания слов оператора — косвенная оценка дикции и разборчивости")}
-        ${tile(mt.pauses.length, "пауз ≥ 5 с", "Тишина вне удержания после подключения оператора")}
-        ${tile(`${Math.round(mt.hold_sec)} с`, "на удержании")}
+      <div class="cd-ap-head"><span class="cd-ap-title" title="Whisper ${esc(a.whisper_model || "")}">${icon("waveform", { size: 15 })}Анализ записи</span></div>
+      <div class="mini-tiles cd-stats">
+        ${tile("headphones", op.wpm ? op.wpm : "—", "сл/мин", "Темп оператора", "Темп речи оператора по распознаванию с таймингами слов")}
+        ${tile("user", cl.wpm ? cl.wpm : "—", "сл/мин", "Темп клиента", "Темп речи клиента")}
+        ${tile("waveform", op.confidence !== null && op.confidence !== undefined ? op.confidence : "—", "%", "Разборчивость", "Разборчивость оператора: средняя уверенность распознавания его слов — косвенная оценка дикции")}
+        ${tile("pause", mt.pauses.length, "", "Паузы ≥&nbsp;5&nbsp;с", "Тишина вне удержания после подключения оператора")}
+        ${tile("clock", Math.round(mt.hold_sec), "с", "Удержание", "Время, когда клиент был на удержании")}
       </div>
-      <div class="timeline" id="timeline" title="Шкала записи: кто говорит; красные метки — паузы. Нажмите, чтобы перейти к моменту.">
-        ${segs.map((s) => `<span class="tl-seg" style="left:${(s.start / dur) * 100}%;width:${Math.max(0.25, ((s.end - s.start) / dur) * 100)}%;background:${SPK_COLOR[s.speaker] || SPK_COLOR.unknown}" data-at="${s.start}" title="${esc(SPK_NAME[s.speaker] || s.speaker)} ${fmtTime(s.start)}: ${esc(s.text)}"></span>`).join("")}
-        ${mt.pauses.map((p) => `<span class="tl-pause" style="left:${(p.start / dur) * 100}%;width:${Math.max(0.4, (p.sec / dur) * 100)}%" data-at="${p.start}" title="Пауза ${p.sec} с"></span>`).join("")}
+      <div class="cd-tl">
+        <div class="timeline" id="timeline" title="Шкала записи: кто говорит; красные метки — паузы. Нажмите, чтобы перейти к моменту.">
+          ${segs.map((s) => `<span class="tl-seg" style="left:${(s.start / dur) * 100}%;width:${Math.max(0.25, ((s.end - s.start) / dur) * 100)}%;background:${SPK_COLOR[s.speaker] || SPK_COLOR.unknown}" data-at="${s.start}" title="${esc(SPK_NAME[s.speaker] || s.speaker)} ${fmtTime(s.start)}: ${esc(s.text)}"></span>`).join("")}
+          ${mt.pauses.map((p) => `<span class="tl-pause" style="left:${(p.start / dur) * 100}%;width:${Math.max(0.4, (p.sec / dur) * 100)}%" data-at="${p.start}" title="Пауза ${esc(num(p.sec))} с"></span>`).join("")}
+        </div>
+        <div class="cd-tl-axis" aria-hidden="true"><span>00:00</span><span>${fmtTime(mt.duration_sec || 0)}</span></div>
       </div>
-      <div class="tl-legend">${["operator", "client", "bot", "internal"].filter((k) => segs.some((s) => s.speaker === k)).map((k) => `<span><i style="background:${SPK_COLOR[k]}"></i>${SPK_NAME[k]}</span>`).join("")}<span><i class="pause-i"></i>Пауза ≥ 5 с</span></div>
-      ${mt.pauses.length ? `<div class="small">Паузы: ${mt.pauses.map((p) => `<button class="link small" data-at="${p.start}">${fmtTime(p.start)} — ${p.sec} с</button>`).join(", ")}</div>` : ""}
-      <details class="small"><summary>Расшифровка по аудио (Whisper ${esc(a.whisper_model || "")}, ${a.seconds} с) — для сверки с транскриптом</summary>
-        <div class="whisper">${segs.map((s) => `<div><button class="link small mono" data-at="${s.start}">${fmtTime(s.start)}</button> <b style="color:${SPK_COLOR[s.speaker] || "inherit"}">${esc(SPK_NAME[s.speaker] || s.speaker)}:</b> ${esc(s.text)}</div>`).join("")}</div>
-      </details>
-      <div class="muted small">Смещение записи относительно транскрипта найдено автоматически по ${mt.alignment.anchors} совпадениям реплик — переход к реплике точный.</div>`;
+      <div class="tl-legend">${["operator", "client", "bot", "internal"].filter((k) => segs.some((s) => s.speaker === k)).map((k) => `<span><i style="background:${SPK_COLOR[k]}"></i>${SPK_NAME[k]}</span>`).join("")}<span title="Пауза ≥ 5 с"><i class="pause-i"></i>Пауза</span></div>
+      ${mt.pauses.length ? `<div class="cd-pauses">${mt.pauses.map((p) => `<button type="button" class="cd-chipbtn" data-at="${p.start}" title="Перейти к паузе на ${fmtTime(p.start)}" aria-label="Перейти к паузе на ${fmtTime(p.start)}, длительность ${esc(num(p.sec))} с">${icon("pause", { size: 11 })}<span class="cd-chipbtn-t">${fmtTime(p.start)}</span><span class="cd-chipbtn-d">${esc(num(p.sec))}&nbsp;с</span></button>`).join("")}</div>` : ""}
+      <details class="cd-details"><summary>${icon("chevronRight", { size: 13, cls: "cd-chev" })}<span>Расшифровка аудио</span></summary>
+        <div class="cd-wmeta" title="Смещение записи относительно транскрипта найдено автоматически по совпадениям реплик — переход к реплике точный">Whisper ${esc(a.whisper_model || "")} · ${esc(num(a.seconds))} с · синхронизация по ${esc(mt.alignment.anchors)} репликам</div>
+        <div class="whisper">${segs.map((s) => `<div class="cd-wl"><button type="button" class="link small mono" data-at="${s.start}">${fmtTime(s.start)}</button><span class="cd-spk"><i style="background:${SPK_COLOR[s.speaker] || SPK_COLOR.unknown}"></i>${esc(SPK_NAME[s.speaker] || s.speaker)}:</span> <span>${esc(s.text)}</span></div>`).join("")}</div>
+      </details>`;
     box.querySelectorAll("[data-at]").forEach((el) => el.addEventListener("click", (e) => {
       e.stopPropagation();
       const audio = $("#audio", view);
@@ -295,6 +457,8 @@ export async function renderCard(view, convId, evalId) {
     if (an) { const id = an.dataset.analysis; showAnalysis.has(id) ? showAnalysis.delete(id) : showAnalysis.add(id); repaintResult(); return; }
     const ap = e.target.closest("[data-appeal]");
     if (ap) { openAppealForm(ap.dataset.appeal); return; }
+    // Empty-state shortcut: same action as the «Оценить» button in the page head.
+    if (e.target.closest("[data-run-eval]")) $("#run-eval", view)?.click();
   }
 
   function repaintResult() {
@@ -309,11 +473,12 @@ export async function renderCard(view, convId, evalId) {
     const box = $(`#af-${CSS.escape(cid)}`, view);
     box.hidden = false;
     box.innerHTML = `
-      <label class="field"><span>Комментарий к апелляции *</span>
-        <textarea class="input" rows="3" id="ap-comment" placeholder="Почему оценка неверна? Сошлитесь на реплики, например [9]."></textarea></label>
-      <label class="field"><span>Предлагаемая оценка (необязательно)</span>
-        <select class="input" id="ap-proposed"><option value="">— не указывать —</option>${answerOptions(c).map((o) => `<option value="${o.value}">${esc(o.label)}</option>`).join("")}</select></label>
-      <div class="row-actions"><button class="btn btn-primary btn-sm" id="ap-send">Подать апелляцию</button><button class="btn btn-ghost btn-sm" id="ap-cancel">Отмена</button></div>`;
+      <div class="cd-af-head">${icon("scale", { size: 15 })}<b>Апелляция</b><span class="cd-af-info" title="Апелляция будет передана проверяющему; после его решения итог пересчитается автоматически." aria-label="Апелляция будет передана проверяющему; после его решения итог пересчитается автоматически.">${icon("info", { size: 14 })}</span></div>
+      <label class="field"><span>Комментарий *</span>
+        <textarea class="input" rows="3" id="ap-comment" placeholder="Почему оценка неверна? Ссылки на реплики: [9]"></textarea></label>
+      <label class="field"><span>Предлагаемая оценка</span>
+        <select class="input" id="ap-proposed"><option value="">Не указывать</option>${answerOptions(c).map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join("")}</select></label>
+      <div class="row-actions"><button type="button" class="btn btn-primary btn-sm" id="ap-send">${icon("check", { size: 14 })}Отправить</button><button type="button" class="btn btn-ghost btn-sm" id="ap-cancel">Отмена</button></div>`;
     $("#ap-comment", box).focus();
     $("#ap-cancel", box).onclick = () => { box.hidden = true; box.innerHTML = ""; };
     $("#ap-send", box).onclick = async () => {
@@ -321,7 +486,7 @@ export async function renderCard(view, convId, evalId) {
       if (!comment) return toast("Добавьте комментарий", "warn");
       try {
         const a = await api.createAppeal({ evaluation_id: ev.id, criterion_id: cid, comment, proposed_answer: $("#ap-proposed", box).value || null, author: "Супервайзер" });
-        toast(`Апелляция #${a.id} сохранена и передана проверяющему`, "ok");
+        toast(`Апелляция #${a.id} отправлена проверяющему`, "ok");
         ev = await api.evaluation(ev.id);
         repaintResult();
       } catch (err) { toast(err.message, "bad"); }

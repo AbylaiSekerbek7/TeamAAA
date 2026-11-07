@@ -76,7 +76,7 @@ function paintRole() {
   document.querySelectorAll("button[data-set-role]").forEach((b) => b.classList.toggle("active", b.dataset.setRole === role()));
   document.body.dataset.role = role();
   const r = ROLES[role()] || ROLES.supervisor;
-  $("#user-chip").innerHTML = `<span class="avatar" aria-hidden="true">${r.initials}</span><span class="who"><b>${esc(r.label)}</b><small>Отдел контроля качества</small></span>`;
+  $("#user-chip").innerHTML = `<span class="avatar" title="${esc(r.label)}" aria-label="${esc(r.label)}">${r.initials}</span>`;
 }
 
 let badges = { appeals: 0 };

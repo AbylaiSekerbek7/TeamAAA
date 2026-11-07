@@ -1,6 +1,7 @@
 // Global evaluation-job tracker (progress bar under the top bar).
 import { api } from "./api.js";
 import { esc, toast } from "./ui.js";
+import { icon } from "./icons.js";
 
 const listeners = new Set();
 let el = null;
@@ -20,16 +21,17 @@ function paint() {
   el.innerHTML = list.map((j) => {
     const pct = Math.round((j.done / Math.max(1, j.total)) * 100);
     const running = j.status === "running" || j.status === "queued";
-    return `<div class="jobbar ${running ? "" : "done"}">
+    const details = [j.checklist_name, j.model, j.current ? `сейчас ${j.current} (${j.current_criterion || ""})` : "",
+      j.avg_seconds ? `${j.avg_seconds} с на диалог` : ""].filter(Boolean).join("\n");
+    return `<div class="jobbar ${running ? "" : "done"}" title="${esc(details)}">
       <div class="jobbar-text">
-        <b>${running ? "Идёт оценка" : "Оценка завершена"}</b>
-        <span>${j.done} из ${j.total} · ${esc(j.checklist_name)} · ${esc(j.model || "")}</span>
-        ${j.current ? `<span class="muted">сейчас: ${esc(j.current)} (критерий ${esc(j.current_criterion || "")})</span>` : ""}
-        ${running && j.eta_seconds ? `<span class="muted">${fmtEta(j.eta_seconds)}, ~${j.avg_seconds} с/диалог</span>` : ""}
+        ${running ? '<span class="spin"></span>' : icon("checkCircle", { size: 16, cls: "ok-text" })}
+        <b>${running ? "Оценка" : "Готово"} ${j.done} из ${j.total}</b>
+        ${running && j.eta_seconds ? `<span class="muted">${fmtEta(j.eta_seconds)}</span>` : ""}
         ${j.failed ? `<span class="bad-text">ошибок: ${j.failed}</span>` : ""}
       </div>
-      <div class="progress"><div style="width:${pct}%"></div></div>
-      ${running ? `<button class="btn btn-ghost btn-sm" data-cancel="${j.id}">Остановить</button>` : `<button class="btn btn-ghost btn-sm" data-dismiss="${j.id}">Скрыть</button>`}
+      <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div style="width:${pct}%"></div></div>
+      ${running ? `<button class="btn btn-ghost btn-sm" data-cancel="${j.id}">${icon("pause", { size: 14 })}Остановить</button>` : `<button class="btn btn-ghost btn-sm" data-dismiss="${j.id}" aria-label="Скрыть">${icon("x", { size: 14 })}</button>`}
     </div>`;
   }).join("");
 }

@@ -1,1 +1,110 @@
 ﻿/* settings view styles — tokens from ../app.css; see ../../DESIGN.md */
+
+.st-page { display: flex; flex-direction: column; }
+.st-page .page-head { margin-bottom: 18px; }
+
+/* layout: every card is separated by the same --gap at every width */
+.st-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: var(--gap); align-items: stretch; margin-bottom: var(--gap); }
+.st-grid .panel { margin-bottom: 0; }
+.st-col { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+/* both columns end on one line: the last card of the right column takes up any remaining height */
+.st-col > .panel:last-child { flex: 1; }
+
+/* section card */
+.st-sec { padding: 0; overflow: hidden; }
+.st-sec-head { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 14px 20px; border-bottom: 1px solid var(--line-2); }
+.st-sec-ic { width: 34px; height: 34px; flex: none; border-radius: var(--radius); background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-strong); display: grid; place-items: center; }
+.st-sec-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.st-sec-title h2 { font-size: var(--fs-md); font-weight: 650; line-height: 1.3; }
+.st-sec-title .st-tip { margin-left: 0; vertical-align: 0; }
+.st-sec-aside { flex: none; display: flex; align-items: center; }
+.st-sec-body { padding: 18px 20px 20px; }
+.st-sec-body > .field:last-child, .st-sec-body > :last-child { margin-bottom: 0; }
+
+/* hint behind an info icon (native tooltip) */
+.st-tip { display: inline-flex; vertical-align: -2px; margin-left: 5px; color: var(--muted-2); cursor: help; }
+.st-tip:hover { color: var(--ink-2); }
+
+/* connection status banner (only when the model needs attention) */
+.st-status { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid; margin-bottom: 18px; }
+.st-status > .ic { margin-top: 1px; flex: none; }
+.st-status > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.st-status b { font-weight: 600; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.st-status-warn { background: var(--mid-bg); border-color: var(--mid-line); }
+.st-status-warn > .ic, .st-status-warn b { color: var(--mid); }
+.st-status-bad { background: var(--bad-bg); border-color: var(--bad-line); }
+.st-status-bad > .ic, .st-status-bad b { color: var(--bad); }
+.st-tech { margin-top: 4px; }
+.st-tech summary { cursor: pointer; font-size: var(--fs-xs); color: var(--ink-2); font-weight: 550; width: fit-content; }
+.st-tech summary:hover { color: var(--ink); }
+.st-tech code { display: block; margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.5; overflow-wrap: anywhere; }
+
+/* fields */
+.st-page .field { margin-bottom: 14px; }
+.st-page .field > span { color: var(--ink-2); }
+.st-page .input.mono { font-size: var(--fs-sm); }
+.st-cols { display: grid; gap: 0 14px; }
+.st-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.st-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* labels in a row stay on one line so the controls share a baseline */
+.st-cols .field > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* generation parameters: a hairline instead of a sub-heading */
+.st-params { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line-2); }
+.st-field-model + .st-models { margin-top: -6px; }
+
+/* models available on the server */
+.st-models { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.st-model { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+.st-model.is-active { background: var(--brand-50); border-color: var(--good-line); color: var(--brand-strong); font-weight: 600; }
+
+/* switch rows (checkbox rendered as a switch; off state is outlined, on state is filled) */
+.st-switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); cursor: pointer; margin-bottom: 14px; transition: border-color .15s var(--ease); }
+.st-switch:hover { border-color: var(--muted-2); }
+.st-switch-text { min-width: 0; }
+.st-switch-text b { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+/* bare switch (in a card header): no row chrome */
+.st-switch-bare { padding: 0; margin: 0; border: 0; background: none; }
+.st-switch input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 40px; height: 22px; margin: 0; border-radius: 11px; border: 1px solid var(--muted); background: var(--surface); cursor: pointer; transition: background .15s var(--ease), border-color .15s var(--ease); }
+.st-switch input[type="checkbox"]::before { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s var(--ease), background .15s var(--ease); }
+.st-switch input[type="checkbox"]:checked { background: var(--brand); border-color: var(--brand); }
+.st-switch input[type="checkbox"]:checked::before { background: var(--surface); transform: translateX(18px); }
+.st-switch input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* audio analysis switched off: its options recede */
+.st-audio .st-sec-body { transition: opacity .15s var(--ease); }
+.st-audio:has(#audio_analysis:not(:checked)) .st-sec-body { opacity: .5; }
+
+/* data source: the URL box grows with its content so the whole address (incl. sig) stays visible */
+.st-url { font-size: 12.5px !important; line-height: 1.55; background: var(--surface-2); color: var(--ink-2); word-break: break-all; min-height: 92px; max-height: 240px; field-sizing: content; }
+.st-url:focus { background: var(--surface); }
+.st-url::placeholder { color: var(--muted-2); }
+
+/* cost: one compact strip — title, price per evaluation, three facts */
+.st-cost { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 28px; padding: 14px 20px; }
+.st-cost-title { display: flex; align-items: center; gap: 12px; }
+.st-cost-title h2 { font-size: var(--fs-md); font-weight: 650; line-height: 1.3; }
+.st-cost-main { display: flex; align-items: baseline; gap: 6px; padding-right: 28px; border-right: 1px solid var(--line-2); }
+.st-cost-value { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st-cost-cap { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
+.st-facts { flex: 1; min-width: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; }
+.st-facts div { min-width: 0; }
+.st-facts dt { font-size: var(--fs-xs); color: var(--muted); margin-bottom: 3px; }
+.st-facts dd { margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+
+/* sticky save bar: just the action, docked bottom-right */
+.st-savebar { align-self: flex-end; margin-top: 0; padding: 8px; }
+.st-savebar .btn { min-width: 160px; }
+
+/* below ~1000px of content the two columns get cramped: stack the cards */
+@media (max-width: 1320px) {
+  .st-grid { grid-template-columns: minmax(0, 1fr); }
+  .st-col { display: contents; }
+}
+@media (max-width: 1000px) {
+  .st-facts { flex-basis: 100%; }
+}
+@media (max-width: 640px) {
+  .st-cols-2, .st-cols-3, .st-facts { grid-template-columns: minmax(0, 1fr); }
+  .st-cost-main { padding-right: 0; border-right: 0; }
+  .st-savebar { align-self: stretch; }
+  .st-savebar .btn { width: 100%; }
+}

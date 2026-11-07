@@ -162,6 +162,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "num_ctx": 8192,
     "think": False,
     "max_tokens": 900,
+    "team_name": "TeamAAA",
     "audio_analysis": True,
     "whisper_model": "small",
     "whisper_device": "cpu",
@@ -373,6 +374,12 @@ def get_evaluation(eval_id: int) -> dict | None:
             raw = d.pop(k)
             d[JSON_KEYS[k]] = json.loads(raw) if raw else None
     return d
+
+
+def latest_done_evaluation(conversation_id: str) -> dict | None:
+    with tx() as con:
+        row = con.execute("SELECT MAX(id) FROM evaluations WHERE conversation_id=? AND status='done'", (conversation_id,)).fetchone()
+    return get_evaluation(row[0]) if row and row[0] else None
 
 
 def list_evaluations(conversation_id: str) -> list[dict]:

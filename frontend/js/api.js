@@ -59,5 +59,6 @@ export const api = {
 
   stats: (dataset) => request("GET", `/api/stats${dataset ? `?dataset=${encodeURIComponent(dataset)}` : ""}`),
   accuracy: (dataset) => request("GET", `/api/accuracy${dataset ? `?dataset=${encodeURIComponent(dataset)}` : ""}`),
-  exportUrl: (fmt, dataset) => `${base()}/api/export.${fmt}${dataset ? `?dataset=${encodeURIComponent(dataset)}` : ""}`,
+  resultsUrl: (dataset) => `${base()}/api/results.json?dataset=${encodeURIComponent(dataset)}`,
+  exportUrl: (fmt, dataset) =>`${base()}/api/export.${fmt}${dataset ? `?dataset=${encodeURIComponent(dataset)}` : ""}`,
 };
