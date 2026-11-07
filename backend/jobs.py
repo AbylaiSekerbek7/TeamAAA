@@ -42,7 +42,7 @@ def submit(pairs: list[tuple[str, int]], settings: dict, auto: bool = False) -> 
         "checklist_id": pairs[0][1] if len(names) == 1 else None,
         "checklist_name": label,
         "model": settings.get("model"),
-        "total": len(conversation_ids),
+        "total": len(pairs),
         "done": 0,
         "failed": 0,
         "status": "queued",
@@ -127,6 +127,9 @@ def _run() -> None:
             item["total"] = score["total"]
             item["gross_error"] = score["gross_error"]
             job["done"] += 1
+            if result["errors"]:
+                job["failed"] += 1
+                item["error"] = f"не оценены: {', '.join(result['errors'])}"
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             db.update_evaluation(eval_id, status="error", error=str(e), finished_at=db.now())

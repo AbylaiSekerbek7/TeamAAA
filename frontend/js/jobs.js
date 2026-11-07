@@ -44,7 +44,9 @@ async function poll() {
       active.set(id, j);
       if (j.done !== prev.done || j.status !== prev.status) listeners.forEach((fn) => fn(j));
       if (j.status === "finished" && prev.status !== "finished") {
-        toast(`Оценка завершена: ${j.done - j.failed} из ${j.total}`, j.failed ? "warn" : "ok");
+        const ok = j.items.filter((i) => i.status === "done").length;
+        const cancelled = j.items.filter((i) => i.status === "cancelled").length;
+        toast(`Оценка завершена: ${ok} из ${j.total}${cancelled ? `, отменено ${cancelled}` : ""}${j.failed ? `, ошибок ${j.failed}` : ""}`, j.failed || cancelled ? "warn" : "ok");
       }
     } catch { /* ignore transient errors */ }
   }

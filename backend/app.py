@@ -29,6 +29,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 @app.on_event("startup")
 def _startup() -> None:
     db.init()
+    db.fail_interrupted_evaluations()
 
 
 def _err(status: int, msg: str):
@@ -61,12 +62,17 @@ def get_settings():
 def put_settings(values: dict = Body(...)):
     if "api_key" in values and str(values["api_key"]).startswith("••••"):
         values.pop("api_key")
-    for k in ("temperature", "vote_temperature"):
+    names = {"temperature": "Temperature", "vote_temperature": "Temperature голосов", "votes": "Голосов",
+             "num_ctx": "Контекст", "max_tokens": "Макс. токенов"}
+    for k, conv in (("temperature", float), ("vote_temperature", float), ("votes", int), ("num_ctx", int), ("max_tokens", int)):
         if k in values:
-            values[k] = float(values[k])
-    for k in ("votes", "num_ctx", "max_tokens"):
-        if k in values:
-            values[k] = int(values[k])
+            if values[k] in ("", None):
+                values.pop(k)
+                continue
+            try:
+                values[k] = conv(values[k])
+            except (TypeError, ValueError):
+                _err(400, f"Поле «{names[k]}»: нужно число")
     return _public_settings(db.save_settings(values))
 
 
@@ -186,6 +192,8 @@ def validate_checklist(data: dict) -> dict:
                 scale.append({"value": v, "description": (s.get("description") or "").strip()})
             if len(scale) < 2:
                 _err(400, f"«{title}»: для шкалы нужно минимум две ступени")
+            if min(vals) < 0:
+                _err(400, f"«{title}»: ступени шкалы не могут быть отрицательными")
             if max(vals) <= 0:
                 _err(400, f"«{title}»: верхняя ступень шкалы должна быть больше нуля")
             scale.sort(key=lambda s: -s["value"])
@@ -286,7 +294,12 @@ def start_evaluation(body: dict = Body(...)):
     cl_id = body.get("checklist_id")
     auto = cl_id in (None, "", "auto")
     if auto:
-        pairs = [(c["id"], db.checklist_for_channel(c["channel"])["id"]) for c in convs]
+        pairs = []
+        for c in convs:
+            cl = db.checklist_for_channel(c["channel"])
+            if cl is None:
+                _err(400, f"Нет активного чек-листа для канала «{c['channel']}» — включите чек-лист или выберите его вручную")
+            pairs.append((c["id"], cl["id"]))
     else:
         if not db.get_checklist(int(cl_id)):
             _err(404, "Чек-лист не найден")
@@ -397,28 +410,42 @@ def decide(appeal_id: int, body: dict = Body(...)):
         _err(400, "Решение: confirm или change")
     if not reason:
         _err(400, "Укажите причину решения")
-    ev = db.get_evaluation(ap["evaluation_id"])
-    cl = db.get_checklist(ev["checklist_id"])["data"]
+    reviewer = body.get("reviewer") or "Проверяющий"
+    ev0 = db.get_evaluation(ap["evaluation_id"])
+    cl = db.get_checklist(ev0["checklist_id"])["data"]
     crit = next(c for c in cl["criteria"] if c["id"] == ap["criterion_id"])
-    answers = _final_answers(ev)
-    final = ev.get("final") or {"overrides": {}}
-    final.setdefault("overrides", {})
+    new_change = None
     if decision == "change":
-        new = normalize_answer(crit, body.get("new_answer"))
-        if new is None:
+        new_change = normalize_answer(crit, body.get("new_answer"))
+        if new_change is None:
             _err(400, f"Недопустимое значение. Разрешено: {', '.join(allowed_answers(crit))}")
-        answers[ap["criterion_id"]] = new
-        final["overrides"][ap["criterion_id"]] = {
-            "answer": new, "answer_label": answer_label(crit, new), "appeal_id": appeal_id, "reason": reason,
-            "reviewer": body.get("reviewer") or "Проверяющий", "previous": ap["original"]["answer"],
-        }
-    else:
-        new = answers.get(ap["criterion_id"])
-    score = compute_score(cl, answers)
-    final["score"] = score
-    db.update_evaluation(ev["id"], final_result_json=final, final_total=score["total"], final_gross_error=int(score["gross_error"]))
-    db.decide_appeal(appeal_id, decision, new, body.get("reviewer") or "Проверяющий", reason, score["total"])
-    return {"appeal": db.get_appeal(appeal_id), "final_total": score["total"], "score": score}
+    out: dict = {}
+
+    def compute(ev: dict, appeal: dict):
+        # Runs inside one transaction on the freshest evaluation row, so concurrent decisions never drop overrides.
+        answers = _final_answers(ev)
+        final = ev.get("final") or {}
+        final.setdefault("overrides", {})
+        if decision == "change":
+            new = new_change
+            answers[appeal["criterion_id"]] = new
+            final["overrides"][appeal["criterion_id"]] = {
+                "answer": new, "answer_label": answer_label(crit, new), "appeal_id": appeal_id, "reason": reason,
+                "reviewer": reviewer, "previous": answers_before.get(appeal["criterion_id"]),
+            }
+        else:
+            new = answers.get(appeal["criterion_id"])
+        score = compute_score(cl, answers)
+        final["score"] = score
+        out["score"] = score
+        return final, score["total"], int(score["gross_error"]), decision, new, reviewer, reason
+
+    answers_before = _final_answers(ev0)
+    res = db.decide_appeal_atomic(appeal_id, compute)
+    if res is None:
+        _err(409, "Апелляция уже рассмотрена")
+    return {"appeal": db.get_appeal(appeal_id), "final_total": res["total_after"], "total_before": res["total_before"],
+            "score": out["score"]}
 
 
 # ---------------------------------------------------------------- analytics, export, accuracy
@@ -443,7 +470,7 @@ def stats(dataset: str | None = None):
         if e["final_total"] is not None:
             by_lang.setdefault(conv.get("language") or "?", []).append(e["final_total"])
             by_channel.setdefault(conv.get("channel") or "?", []).append(e["final_total"])
-            hist[min(9, int(e["final_total"] // 10))] += 1
+            hist[max(0, min(9, int(e["final_total"] // 10)))] += 1
         if e["final_gross_error"]:
             gross.append(e["conversation_id"])
         cl = db.get_checklist(e["checklist_id"])["data"]

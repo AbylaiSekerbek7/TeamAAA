@@ -16,6 +16,9 @@ DEFAULT_CHECKLIST = Path(__file__).resolve().parent / "defaults" / "checklist_ch
 
 _lock = threading.RLock()
 
+# evaluations.result_json -> ev["result"] (AI verdicts), final_result_json -> ev["final"] (appeal overrides + final score)
+JSON_KEYS = {"result_json": "result", "final_result_json": "final"}
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations (
     id TEXT PRIMARY KEY,
@@ -141,7 +144,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "ollama_url": "http://127.0.0.1:11434",
     "base_url": "",
     "api_key": "",
-    "model": "qwen3:8b",
+    "model": "qwen3.5:9b",
     "temperature": 0.0,
     "votes": 1,
     "vote_temperature": 0.7,
@@ -224,16 +227,19 @@ def conversation_record(cid: str) -> dict | None:
 
 
 def list_conversations() -> list[dict]:
+    # Score/appeal columns come from the latest *done* evaluation; last_status reflects the latest run of any status.
     with tx() as con:
         rows = con.execute(
             """SELECT c.id, c.dataset, c.channel, c.language, c.audio_url IS NOT NULL AS has_audio, c.imported_at,
                       json_array_length(c.transcript_json) AS n_messages,
-                      e.id AS eval_id, e.status AS eval_status, e.total, e.gross_error, e.final_total, e.final_gross_error,
+                      e.id AS eval_id, e.status AS done_status, e.total, e.gross_error, e.final_total, e.final_gross_error,
                       e.checklist_id, e.finished_at, e.model,
+                      l.status AS eval_status, l.error AS last_error,
                       (SELECT COUNT(*) FROM appeals a WHERE a.evaluation_id = e.id) AS appeals_total,
                       (SELECT COUNT(*) FROM appeals a WHERE a.evaluation_id = e.id AND a.status='open') AS appeals_open
                FROM conversations c
-               LEFT JOIN evaluations e ON e.id = (SELECT MAX(id) FROM evaluations e2 WHERE e2.conversation_id = c.id)
+               LEFT JOIN evaluations e ON e.id = (SELECT MAX(id) FROM evaluations e2 WHERE e2.conversation_id = c.id AND e2.status='done')
+               LEFT JOIN evaluations l ON l.id = (SELECT MAX(id) FROM evaluations e3 WHERE e3.conversation_id = c.id)
                ORDER BY c.dataset, c.id"""
         ).fetchall()
     return [row_to_dict(r) for r in rows]
@@ -287,7 +293,7 @@ def checklist_for_channel(channel: str | None) -> dict:
     generic = [c for c in act if not c["data"].get("channels")]
     if generic:
         return generic[-1]
-    return act[-1] if act else active_checklist()
+    return None  # no active checklist for this channel — the caller reports it instead of guessing
 
 
 def save_checklist(data: dict, comment: str = "", activate: bool = True) -> dict:
@@ -351,7 +357,7 @@ def get_evaluation(eval_id: int) -> dict | None:
     if d:
         for k in ("result_json", "final_result_json"):
             raw = d.pop(k)
-            d[k.replace("_json", "")] = json.loads(raw) if raw else None
+            d[JSON_KEYS[k]] = json.loads(raw) if raw else None
     return d
 
 
@@ -386,7 +392,7 @@ def latest_evaluations(dataset: str | None = None, checklist_id: int | None = No
         d = row_to_dict(r)
         for k in ("result_json", "final_result_json"):
             raw = d.pop(k)
-            d[k.replace("_json", "")] = json.loads(raw) if raw else None
+            d[JSON_KEYS[k]] = json.loads(raw) if raw else None
         out.append(d)
     return out
 
@@ -433,11 +439,34 @@ def list_appeals(status: str | None = None, evaluation_id: int | None = None) ->
     return [_appeal_row(r) for r in rows]
 
 
-def decide_appeal(appeal_id: int, decision: str, new_answer: Any, reviewer: str, reviewer_comment: str,
-                  total_after: float | None) -> None:
+def decide_appeal_atomic(appeal_id: int, compute: Any) -> dict | None:
+    """Decide an appeal in one transaction: re-read the evaluation, let `compute(ev, appeal)` return
+    (final_json, final_total, final_gross, decision, new_answer, reviewer, reason), write both rows.
+    Returns None if the appeal is no longer open (concurrent decision)."""
     with tx() as con:
+        ap = _appeal_row(con.execute("SELECT * FROM appeals WHERE id=?", (appeal_id,)).fetchone())
+        if ap is None or ap["status"] != "open":
+            return None
+        row = row_to_dict(con.execute("SELECT * FROM evaluations WHERE id=?", (ap["evaluation_id"],)).fetchone())
+        for k in ("result_json", "final_result_json"):
+            raw = row.pop(k)
+            row[JSON_KEYS[k]] = json.loads(raw) if raw else None
+        total_before = row.get("final_total")
+        final, final_total, final_gross, decision, new_answer, reviewer, reason = compute(row, ap)
+        con.execute("UPDATE evaluations SET final_result_json=?, final_total=?, final_gross_error=? WHERE id=?",
+                    (json.dumps(final, ensure_ascii=False), final_total, final_gross, row["id"]))
         con.execute(
-            """UPDATE appeals SET status=?, decision=?, new_answer=?, reviewer=?, reviewer_comment=?, decided_at=?, total_after=?
-               WHERE id=?""",
-            ("decided", decision, json.dumps(new_answer), reviewer, reviewer_comment, now(), total_after, appeal_id),
+            """UPDATE appeals SET status='decided', decision=?, new_answer=?, reviewer=?, reviewer_comment=?, decided_at=?,
+                   total_before=?, total_after=? WHERE id=? AND status='open'""",
+            (decision, json.dumps(new_answer), reviewer, reason, now(), total_before, final_total, appeal_id),
         )
+        return {"total_before": total_before, "total_after": final_total}
+
+
+def fail_interrupted_evaluations() -> int:
+    """Evaluations left queued/running by a server restart can never finish (the queue is in memory)."""
+    with tx() as con:
+        cur = con.execute(
+            "UPDATE evaluations SET status='error', error='Прервано перезапуском сервера — запустите оценку снова', finished_at=? "
+            "WHERE status IN ('queued','running')", (now(),))
+        return cur.rowcount

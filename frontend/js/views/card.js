@@ -75,7 +75,7 @@ export async function renderCard(view, convId, evalId) {
       </header>
       <div class="crit-points">${pts}${r.source === "rule" ? `<span class="conf" title="Критерий формальный: проверен детерминированным правилом по ключевым словам и системным событиям">⚙ проверено правилом</span>` : ""}${r.confidence !== undefined && r.votes && r.votes.length > 1 ? `<span class="conf ${r.confidence < 1 ? "conf-low" : ""}" title="Согласие голосов модели: ${esc(r.votes.join(", "))}">уверенность ${Math.round(r.confidence * 100)}%</span>` : ""}</div>
       <p class="crit-expl">${esc(r.explanation || "")}</p>
-      ${evidenceHtml(r.evidence_ids, msgs, r.answer)}
+      ${evidenceHtml(r.evidence_ids, msgs, finalAnswer)}
       ${r.analysis ? `<button class="link small" data-analysis="${esc(c.id)}">${showAnalysis.has(c.id) ? "Скрыть ход рассуждения" : "Показать ход рассуждения модели"}</button>
         ${showAnalysis.has(c.id) ? `<p class="analysis">${esc(r.analysis)}</p>` : ""}` : ""}
       ${ov ? `<div class="override">✎ Изменено проверяющим (${esc(ov.reviewer || "")}): <b>${esc(answerText(c, ov.previous))} → ${esc(answerText(c, ov.answer))}</b>. Причина: ${esc(ov.reason)}</div>` : ""}
@@ -101,13 +101,16 @@ export async function renderCard(view, convId, evalId) {
     const changed = ev.final_total !== ev.total;
     const crits = cl.criteria.filter((c) => c.enabled !== false);
     const sections = score.sections.filter((s) => s.weighted);
-    const naCount = crits.filter((c) => (ev.result.criteria[c.id] || {}).answer === "na").length;
+    const overrides = (ev.final && ev.final.overrides) || {};
+    const finalAns = (c) => (overrides[c.id] ? overrides[c.id].answer : (ev.result.criteria[c.id] || {}).answer);
+    const naCount = crits.filter((c) => finalAns(c) === "na").length;
+    const missing = score.missing || [];
     return `
-      ${ev.error ? `<div class="override">⚠ ${esc(ev.error)}. Эти критерии не учтены в итоге — запустите переоценку.</div>` : ""}
+      ${missing.length ? `<div class="override">⚠ Модель не смогла оценить: ${missing.map((id) => esc((crits.find((c) => c.id === id) || {}).title || id)).join(", ")}. Итог не рассчитан — запустите переоценку или задайте оценку через апелляцию.</div>` : ""}
       <div class="summary">
         <div class="summary-score">
-          <div class="big ${score.total === null ? "" : ""}">${scoreBadge(ev.final_total, "score-xl")}</div>
-          <div class="summary-cap">${score.total_calculated ? "итоговый балл из 100" : "итог не рассчитывается — нет применимых критериев"}</div>
+          <div class="big">${scoreBadge(ev.final_total, "score-xl")}</div>
+          <div class="summary-cap">${score.total_calculated ? "итоговый балл из 100" : missing.length ? "итог не рассчитан — есть неоценённые критерии" : "итог не рассчитывается — нет применимых критериев"}</div>
           ${changed ? `<div class="small">ИИ: <span class="strike">${fmtScore(ev.total)}</span> → после апелляции: <b>${fmtScore(ev.final_total)}</b></div>` : ""}
         </div>
         <div class="summary-side">
@@ -251,11 +254,21 @@ export async function renderCard(view, convId, evalId) {
   }
 
   paint();
+  // Repaint only when THIS dialog's evaluation changes state (not on every tick of a batch),
+  // so playback and a half-written appeal are not wiped.
+  const seen = new Map();
+  let alive = true;
   const off = jobs.onUpdate(async (j) => {
-    if (j.items.some((i) => i.conversation_id === convId && i.status !== "queued")) {
-      await load();
-      paint();
-    }
+    const item = j.items.find((i) => i.conversation_id === convId);
+    if (!item) return;
+    const key = `${j.id}:${item.evaluation_id}`;
+    if (seen.get(key) === item.status) return;
+    const first = !seen.has(key);
+    seen.set(key, item.status);
+    if (first && item.status === "queued") return;
+    if (!["done", "error", "cancelled", "running"].includes(item.status)) return;
+    await load();
+    if (alive) paint();
   });
-  return { destroy() { off(); view.removeEventListener("click", onClick); } };
+  return { destroy() { alive = false; off(); view.removeEventListener("click", onClick); } };
 }

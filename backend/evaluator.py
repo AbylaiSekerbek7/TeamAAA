@@ -111,10 +111,15 @@ def normalize_answer(c: dict, raw: Any) -> Any:
     if a in ("нет", "false"):
         a = "no"
     allowed = allowed_answers(c)
+    if c["type"] == "scale" and a != "na":
+        try:
+            v = float(a)
+        except ValueError:
+            return None
+        step = next((s["value"] for s in c.get("scale", []) if float(s["value"]) == v), None)
+        return step  # the configured step value (int or fractional), None if not a valid step
     if a not in allowed:
         return None
-    if c["type"] == "scale" and a != "na":
-        return int(float(a))
     return a
 
 
@@ -141,7 +146,8 @@ def _vote(c: dict, runs: list[dict]) -> dict:
     if len(leaders) == 1:
         winner = leaders[0]
     else:
-        winner = str(valid[0]["answer"])  # deterministic first run (temperature 0) breaks ties
+        # ties go to the earliest run among the leaders (run 0 is the deterministic temperature-0 run)
+        winner = next(str(r["answer"]) for r in valid if str(r["answer"]) in leaders)
     chosen = next(r for r in valid if str(r["answer"]) == winner)
     out = dict(chosen)
     out["votes"] = [r.get("answer") for r in runs]
@@ -177,16 +183,21 @@ def evaluate_criterion(client, settings: dict, system_prompt: str, dialog_text: 
             try:
                 resp = client.chat_json(
                     model=settings["model"], messages=messages, schema=schema, temperature=temp, seed=seed,
-                    num_ctx=int(settings.get("num_ctx", 12288)), think=settings.get("think", False),
+                    num_ctx=int(settings.get("num_ctx", 8192)), think=settings.get("think", False),
                     max_tokens=int(settings.get("max_tokens", 900)),
                 )
                 data = resp["json"]
                 tokens_in += resp["prompt_tokens"]
                 tokens_out += resp["completion_tokens"]
                 dur += resp["duration_ms"]
+                if not isinstance(data, dict):
+                    raise ValueError("ответ модели не является JSON-объектом")
                 ans = normalize_answer(c, data.get("answer"))
+                if ans is None:
+                    raise ValueError(f"недопустимое значение ответа: {data.get('answer')!r}")
+                raw_ev = data.get("evidence_ids")
                 ev = []
-                for x in data.get("evidence_ids") or []:
+                for x in raw_ev if isinstance(raw_ev, list) else []:
                     try:
                         xi = int(x)
                     except (TypeError, ValueError):
@@ -201,7 +212,7 @@ def evaluate_criterion(client, settings: dict, system_prompt: str, dialog_text: 
                 })
                 last_err = None
                 break
-            except (LLMError, ValueError, KeyError) as e:
+            except Exception as e:  # noqa: BLE001 — one failed criterion must not discard the whole evaluation
                 last_err = e
                 seed += 100
         if last_err is not None:

@@ -5,6 +5,8 @@ import { jobs } from "../jobs.js";
 const state = {
   lang: "all", channel: "all", status: "all", dataset: "all", q: "",
   selected: new Set(),
+  checklist: "auto",
+  groupId: "DEV",
 };
 
 function filtered(rows) {
@@ -12,8 +14,8 @@ function filtered(rows) {
     if (state.lang !== "all" && r.language !== state.lang) return false;
     if (state.channel !== "all" && channelLabel(r.channel) !== state.channel) return false;
     if (state.dataset !== "all" && r.dataset !== state.dataset) return false;
-    if (state.status === "new" && r.eval_status) return false;
-    if (state.status === "done" && r.eval_status !== "done") return false;
+    if (state.status === "new" && (r.eval_status || r.done_status)) return false;
+    if (state.status === "done" && r.done_status !== "done") return false;
     if (state.status === "appeal" && !r.appeals_open) return false;
     if (state.status === "gross" && !r.final_gross_error) return false;
     if (state.q && !r.id.toLowerCase().includes(state.q.toLowerCase())) return false;
@@ -23,14 +25,14 @@ function filtered(rows) {
 
 function statusCell(r) {
   if (jobs.isBusy(r.id) || r.eval_status === "running" || r.eval_status === "queued") return `<span class="tag tag-run">оценивается…</span>`;
-  if (!r.eval_status) return `<span class="tag">не оценён</span>`;
-  if (r.eval_status === "error") return `<span class="tag tag-bad">ошибка</span>`;
-  if (r.eval_status === "cancelled") return `<span class="tag">отменено</span>`;
-  return `<span class="muted small">${fmtDate(r.finished_at)}</span>`;
+  const last = r.eval_status && r.eval_status !== "done"
+    ? ` <span class="tag ${r.eval_status === "error" ? "tag-bad" : ""}" title="${esc(r.last_error || "")}">последний запуск: ${r.eval_status === "error" ? "ошибка" : "отменён"}</span>` : "";
+  if (r.done_status !== "done") return (last || `<span class="tag">не оценён</span>`);
+  return `<span class="muted small">${fmtDate(r.finished_at)}</span>${last}`;
 }
 
 function seg(name, value, options) {
-  return `<div class="seg" data-seg="${name}">${options.map(([v, l]) => `<button data-v="${v}" class="${state[name] === v ? "active" : ""}">${esc(l)}</button>`).join("")}</div>`;
+  return `<div class="seg" data-seg="${esc(name)}">${options.map(([v, l]) => `<button data-v="${esc(v)}" class="${state[name] === v ? "active" : ""}">${esc(l)}</button>`).join("")}</div>`;
 }
 
 export async function renderList(view) {
@@ -58,7 +60,7 @@ export async function renderList(view) {
         </div>
         <div class="head-actions">
           <div class="inline-form">
-            <input id="group-id" class="input" value="DEV" placeholder="group_id" aria-label="group_id">
+            <input id="group-id" class="input" value="${esc(state.groupId)}" placeholder="group_id" aria-label="group_id">
             <button class="btn" id="fetch-btn">Загрузить набор из API</button>
           </div>
           <label class="btn btn-ghost">Загрузить JSON-файл<input type="file" id="file-in" accept=".json,application/json" hidden></label>
@@ -78,8 +80,8 @@ export async function renderList(view) {
         <span><b>${state.selected.size}</b> выбрано</span>
         <label class="muted small">Чек-лист
           <select id="cl-select" class="input input-sm">
-            <option value="auto" selected>Авто: по каналу (чаты → ${esc(byChannel["agent chat"]?.name || "—")}, звонки → ${esc(byChannel["voice call"]?.name || "—")})</option>
-            ${checklists.map((c) => `<option value="${c.id}">${esc(c.name)} v${c.version}${c.is_active ? " (активный)" : ""}</option>`).join("")}
+            <option value="auto" ${state.checklist === "auto" ? "selected" : ""}>Авто: по каналу (чаты → ${esc(byChannel["agent chat"]?.name || "нет")}, звонки → ${esc(byChannel["voice call"]?.name || "нет")})</option>
+            ${checklists.map((c) => `<option value="${c.id}" ${String(state.checklist) === String(c.id) ? "selected" : ""}>${esc(c.name)} v${c.version}${c.is_active ? " (активный)" : ""}</option>`).join("")}
           </select>
         </label>
         <button class="btn btn-primary" id="eval-sel" ${state.selected.size ? "" : "disabled"}>Оценить выбранные</button>
@@ -102,8 +104,8 @@ export async function renderList(view) {
             <td>${r.has_audio ? "🎧 " : "💬 "}${channelLabel(r.channel)}</td>
             <td><span class="lang">${esc(r.language || "")}</span></td>
             <td class="num">${r.n_messages}</td>
-            <td class="num">${r.eval_status === "done" ? scoreBadge(r.final_total) + (r.final_total !== r.total ? ` <span class="muted small" title="До апелляции">(${r.total ?? "—"})</span>` : "") : "—"}</td>
-            <td>${r.final_gross_error ? `<span class="tag tag-bad">⚠ да</span>` : r.eval_status === "done" ? `<span class="muted">нет</span>` : ""}</td>
+            <td class="num">${r.done_status === "done" ? scoreBadge(r.final_total) + (r.final_total !== r.total ? ` <span class="muted small" title="До апелляции">(${esc(r.total ?? "—")})</span>` : "") : "—"}</td>
+            <td>${r.final_gross_error ? `<span class="tag tag-bad">⚠ да</span>` : r.done_status === "done" ? `<span class="muted">нет</span>` : ""}</td>
             <td>${r.appeals_open ? `<span class="tag tag-warn">открыта: ${r.appeals_open}</span>` : r.appeals_total ? `<span class="muted small">рассмотрено: ${r.appeals_total}</span>` : ""}</td>
             <td>${statusCell(r)}</td>
           </tr>`).join("")}
@@ -115,6 +117,8 @@ export async function renderList(view) {
   }
 
   function bind(list) {
+    $("#cl-select", view)?.addEventListener("change", (e) => { state.checklist = e.target.value; });
+    $("#group-id", view)?.addEventListener("input", (e) => { state.groupId = e.target.value; });
     $("#fetch-btn", view)?.addEventListener("click", async (e) => {
       const gid = $("#group-id", view).value.trim();
       if (!gid) return toast("Укажите group_id", "warn");
@@ -172,7 +176,7 @@ export async function renderList(view) {
     }));
     const run = async (ids) => {
       if (!ids.length) return toast("Нет диалогов для оценки", "warn");
-      const v = $("#cl-select", view).value;
+      const v = state.checklist;
       const clId = v === "auto" ? "auto" : Number(v);
       try {
         const job = await api.evaluate(ids, clId);
@@ -184,7 +188,7 @@ export async function renderList(view) {
       } catch (err) { toast(err.message, "bad"); }
     };
     $("#eval-sel", view)?.addEventListener("click", () => run([...state.selected]));
-    $("#eval-new", view)?.addEventListener("click", () => run(list.filter((r) => !r.eval_status).map((r) => r.id)));
+    $("#eval-new", view)?.addEventListener("click", () => run(list.filter((r) => r.done_status !== "done" && !jobs.isBusy(r.id)).map((r) => r.id)));
   }
 
   paint();

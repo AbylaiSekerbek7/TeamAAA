@@ -78,17 +78,37 @@ NAME_PATTERNS = [
     re.compile(r"(?i:\bмен)\s+([А-ЯӘҒҚҢӨҰҮҺІ][а-яәғқңөұүһі]{1,15}?)(?:мын|мін|пын|пін|бын|бін)?\b"),
     re.compile(r"(?i:\b(?:i['’]m|i am|my name is|this is))\s+([A-Z][a-z]{1,15})\b"),
 ]
-NOT_NAMES = {"понимаю", "передам", "посмотрел", "уточню", "проверю", "сейчас", "рад", "рада", "here", "sorry", "happy", "glad"}
+NOT_NAMES = {
+    "понимаю", "передам", "посмотрел", "посмотрела", "уточню", "проверю", "сейчас", "рад", "рада", "помогу",
+    "вас", "вам", "вами", "вы", "ваш", "вашу", "вашего", "ваши", "его", "её", "их", "тоже", "здесь",
+    "сіз", "сізге", "сізді", "сізбен", "сіздің",
+    "here", "sorry", "happy", "glad", "you", "your", "the", "a", "an", "not", "afraid", "able",
+}
 
 KZ_CHARS = set("әғқңөұүһіӘҒҚҢӨҰҮҺІ")
 CYR_RE = re.compile(r"[А-Яа-яЁё]")
 LAT_RE = re.compile(r"[A-Za-z]")
 
 
+LETTERS_RE = re.compile(r"[^\W\d_]+")
+
+
+def _kz_signal(text: str) -> bool:
+    """Kazakh-specific letters outside proper names (capitalised words that do not start a sentence),
+    so a Russian reply mentioning «Айгүл» or «Нұрлан» stays Russian."""
+    for sentence in re.split(r"[.!?\n]+", text):
+        for i, tok in enumerate(LETTERS_RE.findall(sentence)):
+            if i > 0 and tok[:1].isupper():
+                continue
+            if any(ch in KZ_CHARS for ch in tok):
+                return True
+    return False
+
+
 def detect_lang(text: str) -> str | None:
     if not text:
         return None
-    if any(ch in KZ_CHARS for ch in text):
+    if _kz_signal(text):
         return "KZ"
     cyr = len(CYR_RE.findall(text))
     lat = len(LAT_RE.findall(text))
@@ -108,8 +128,7 @@ def find_keyword(text: str, words: list[str]) -> str | None:
 
 def find_name(text: str) -> str | None:
     for p in NAME_PATTERNS:
-        m = p.search(text or "")
-        if m:
+        for m in p.finditer(text or ""):
             name = m.group(1).strip()
             if name.lower() not in NOT_NAMES:
                 return name
@@ -289,6 +308,10 @@ def compute_facts(record: dict, norm: dict) -> dict:
         prev_client_id = None
         for m in msgs:
             if m["id"] <= first_op["id"]:
+                continue
+            if m["event"] in ("hold_start", "consult_start"):
+                # an announced hold is not an unexplained wait for the client's answer
+                prev_client_t, prev_client_id = None, None
                 continue
             if m["speaker"] == "client" and m["duplicate_of"] is None:
                 if prev_client_t is None:

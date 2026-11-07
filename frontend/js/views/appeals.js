@@ -111,7 +111,7 @@ export async function renderAppeals(view, hash) {
         if (!reason) return toast("Укажите причину решения", "warn");
         try {
           const res = await api.decideAppeal(a.id, { decision, reason, new_answer: decision === "change" ? $("#new-ans", box).value : null, reviewer: "Проверяющий" });
-          toast(`Решение сохранено. Итог: ${fmtScore(a.total_before)} → ${fmtScore(res.final_total)}`, "ok", 6000);
+          toast(`Решение сохранено. Итог: ${fmtScore(res.total_before)} → ${fmtScore(res.final_total)}`, "ok", 6000);
           await load();
           tab = "decided";
           paint();

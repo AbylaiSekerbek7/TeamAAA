@@ -65,6 +65,7 @@ def compute_score(checklist: dict, answers: dict[str, Any]) -> dict:
     applicable: list[tuple[dict, Decimal, Decimal]] = []  # (criterion, weight, fraction)
     rows: dict[str, dict] = {}
     gross_flags: list[str] = []
+    missing: list[str] = []  # criteria without any verdict (e.g. the model failed) — not the same as N/A
 
     for c in criteria:
         cid = c["id"]
@@ -80,11 +81,17 @@ def compute_score(checklist: dict, answers: dict[str, Any]) -> dict:
             "fraction": None,
         }
         if c.get("type") == "flag":
-            if ans is not None and str(ans).lower() == "yes":
+            if ans is None:
+                missing.append(cid)
+            elif str(ans).lower() == "yes":
                 gross_flags.append(cid)
             rows[cid] = row
             continue
         if not is_weighted(c):
+            rows[cid] = row
+            continue
+        if ans is None:
+            missing.append(cid)
             rows[cid] = row
             continue
         frac = answer_fraction(c, ans)
@@ -97,7 +104,7 @@ def compute_score(checklist: dict, answers: dict[str, Any]) -> dict:
     total_weight = sum((w for _, w, _ in applicable), Decimal(0))
     total: Decimal | None = None
     earned_raw = Decimal(0)
-    if total_weight > 0:
+    if total_weight > 0 and not missing:
         for c, w, frac in applicable:
             eff = w * HUNDRED / total_weight
             pts = eff * frac
@@ -117,7 +124,7 @@ def compute_score(checklist: dict, answers: dict[str, Any]) -> dict:
         sec = seen[name]
         sec["criteria"].append(c["id"])
         r = rows[c["id"]]
-        if r["applicable"] and total_weight > 0:
+        if r["applicable"] and total_weight > 0 and not missing:
             w = Decimal(str(c.get("weight", 0)))
             eff = w * HUNDRED / total_weight
             sec["_max"] += eff
@@ -136,6 +143,7 @@ def compute_score(checklist: dict, answers: dict[str, Any]) -> dict:
     return {
         "total": None if total is None else float(total),
         "total_calculated": total is not None,
+        "missing": missing,
         "applicable_weight": float(total_weight),
         "gross_error": bool(gross_flags),
         "gross_error_criteria": gross_flags,

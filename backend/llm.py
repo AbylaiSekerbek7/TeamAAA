@@ -78,11 +78,17 @@ class OllamaClient:
         if r.status_code >= 400 and "think" in payload:
             # Older Ollama or a model without thinking support: retry without the flag.
             payload.pop("think", None)
-            r = httpx.post(f"{self.base_url}/api/chat", json=payload, timeout=self.timeout)
+            try:
+                r = httpx.post(f"{self.base_url}/api/chat", json=payload, timeout=self.timeout)
+            except httpx.HTTPError as e:
+                raise LLMError(f"Ollama недоступна: {e}") from e
         if r.status_code >= 400:
             raise LLMError(f"Ollama {r.status_code}: {r.text[:300]}")
-        data = r.json()
-        content = data.get("message", {}).get("content", "")
+        try:
+            data = r.json()
+        except ValueError as e:
+            raise LLMError("Ollama вернула некорректный ответ") from e
+        content = (data.get("message") or {}).get("content", "")
         return {
             "content": content,
             "json": _extract_json(content),
