@@ -161,6 +161,20 @@ frontend/ (HTML + CSS + ES-модули без сборки) — Диалоги 
 
 Контрольный набор: «Загрузить набор из API» с выданным `group_id` → «Оценить все неоценённые в фильтре».
 
+## Репетиция контроля
+
+`tests/rehearsal/REHEARSAL.json` — 10 новых диалогов (5 чатов RU/KZ/EN, 5 звонков RU/KZ) в формате API организаторов,
+эталон — `data/labels/rehearsal_labels.json` (задуманная разметка + две независимые слепые разметки, решение большинством).
+- Быстро: «Диалоги» → «Загрузить JSON-файл» → `tests/rehearsal/REHEARSAL.json` → «Оценить все неоценённые» →
+  «Аналитика» → «Сверка с эталонной разметкой» (набор REHEARSAL).
+- Полностью как на контроле (загрузка по group_id и записи звонков): `python scripts/make_rehearsal_audio.py
+  tests/rehearsal/REHEARSAL.json data/rehearsal_audio/audio`, скопировать JSON в `data/rehearsal_audio/`,
+  `python scripts/mock_org_api.py data/rehearsal_audio 8765`, в «Настройках» указать URL `http://127.0.0.1:8765/api`
+  и загрузить набор с group_id `REHEARSAL`.
+
+Результат репетиции на новых данных: 88.8% совпадения по критериям, средняя ошибка итога 5.8 балла; все 10 диалогов
+обработаны без ошибок, ≈ 35–60 с на диалог.
+
 ## Калибровка точности
 
 `python -m scripts.eval_dev [--criteria c07_closing] [--model qwen3.5:9b] [--think] [--votes 3]` —
