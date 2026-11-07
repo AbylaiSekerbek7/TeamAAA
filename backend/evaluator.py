@@ -54,16 +54,18 @@ def allowed_answers(c: dict) -> list[str]:
 
 
 def build_schema(c: dict) -> dict:
-    return {
-        "type": "object",
-        "properties": {
-            "analysis": {"type": "string"},
-            "answer": {"type": "string", "enum": allowed_answers(c)},
-            "evidence_ids": {"type": "array", "items": {"type": "integer"}},
-            "explanation": {"type": "string"},
-        },
-        "required": ["analysis", "answer", "evidence_ids", "explanation"],
-    }
+    # Note: an "issues"-first field for scale criteria was tried and made the 8-9B model over-critical
+    # (dialog-management accuracy 71% -> 31% on DEV), so verdicts are produced without it.
+    props: dict = {}
+    required: list = []
+    props.update({
+        "analysis": {"type": "string"},
+        "answer": {"type": "string", "enum": allowed_answers(c)},
+        "evidence_ids": {"type": "array", "items": {"type": "integer"}},
+        "explanation": {"type": "string"},
+    })
+    required += ["analysis", "answer", "evidence_ids", "explanation"]
+    return {"type": "object", "properties": props, "required": required}
 
 
 def criterion_block(c: dict) -> str:
@@ -208,10 +210,15 @@ def evaluate_criterion(client, settings: dict, system_prompt: str, dialog_text: 
                         continue
                     if 0 <= xi <= max_id and xi not in ev:
                         ev.append(xi)
+                issues = data.get("issues") if isinstance(data.get("issues"), list) else []
+                analysis = str(data.get("analysis", "")).strip()
+                if issues:
+                    analysis = "Недочёты: " + "; ".join(str(i) for i in issues[:8]) + ". " + analysis
                 runs.append({
                     "answer": ans,
                     "evidence_ids": ev[:5],
-                    "analysis": str(data.get("analysis", "")).strip(),
+                    "analysis": analysis,
+                    "issues": [str(i) for i in issues[:8]],
                     "explanation": str(data.get("explanation", "")).strip(),
                 })
                 last_err = None
