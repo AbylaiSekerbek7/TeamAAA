@@ -319,7 +319,7 @@ def compute_facts(record: dict, norm: dict) -> dict:
             elif m["speaker"] == "operator" and m["duplicate_of"] is None and not m["internal"]:
                 if prev_client_t is not None and m["t"] is not None:
                     gap = m["t"] - prev_client_t
-                    if gap >= 90:
+                    if gap >= 120:
                         gaps.append({"after_client_id": prev_client_id, "operator_id": m["id"], "seconds": int(gap)})
                 prev_client_t, prev_client_id = None, None
 
@@ -330,6 +330,20 @@ def compute_facts(record: dict, norm: dict) -> dict:
     duration = None
     if msgs and msgs[-1]["t"] is not None and msgs[0]["t"] is not None:
         duration = msgs[-1]["t"] - msgs[0]["t"]
+
+    # Operator questions asked before the first substantive (non-question) operator answer — input for "needs".
+    op_questions = []
+    first_answer_id = None
+    for m in ops:
+        if "?" in m["text"]:
+            op_questions.append(m["id"])
+            # a message that both asks and answers ("Вам нужны реквизиты, верно? Откройте …") counts as an answer too
+            if len(re.sub(r"[^.!?]*\?", "", m["text"]).strip(" .!")) > 25:
+                first_answer_id = m["id"]
+                break
+        else:
+            first_answer_id = m["id"]
+            break
 
     first_op_checks = None
     if first_op is not None:
@@ -351,6 +365,8 @@ def compute_facts(record: dict, norm: dict) -> dict:
         "client_language": client_lang,
         "first_operator_message_id": first_op["id"] if first_op else None,
         "first_operator_checks": first_op_checks,
+        "operator_questions_before_answer": op_questions,
+        "first_operator_answer_id": first_answer_id,
         "last_operator_checks": last_op_checks,
         "bare_farewell_after_question": bare_after_q,
         "first_operator_language": op_lang,
@@ -370,6 +386,11 @@ def compute_facts(record: dict, norm: dict) -> dict:
     }
 
 
+def _short(text: str, n: int = 110) -> str:
+    text = " ".join((text or "").split())
+    return text if len(text) <= n else text[:n].rstrip() + "…"
+
+
 def facts_to_text(facts: dict, norm: dict) -> str:
     msgs = {m["id"]: m for m in norm["messages"]}
     lines = []
@@ -387,8 +408,18 @@ def facts_to_text(facts: dict, norm: dict) -> str:
         lines.append(f"- Первая реплика оператора: [{fo}]. Автопроверка по ключевым словам (может ошибаться): "
                      f"приветствие — {g}; имя оператора — {nm}; язык реплики — {ol}.")
     if facts.get("client_messages_before_operator"):
-        ids = ", ".join(f"[{i}]" for i in facts["client_messages_before_operator"])
-        lines.append(f"- До подключения оператора клиент уже написал: {ids} (это известные детали).")
+        known = "; ".join(f"[{i}] «{_short(msgs[i]['text'])}»" for i in facts["client_messages_before_operator"] if i in msgs)
+        lines.append(f"- Известные детали — до первой реплики оператора клиент уже сообщил: {known}.")
+    if fo is not None:
+        qs = facts.get("operator_questions_before_answer") or []
+        if qs:
+            fa = facts.get("first_operator_answer_id")
+            ql = "; ".join(f"[{i}] «{_short(msgs[i]['text'])}»" + (" (вопрос-подтверждение внутри ответа — это не уточнение)" if i == fa else "")
+                           for i in qs if i in msgs)
+            lines.append(f"- До первого ответа по существу оператор задал клиенту вопрос(ы): {ql}. Сравни с известными деталями: "
+                         f"спрашивает новое, нужное для ответа, — это уточнение; спрашивает то, что клиент уже сообщил, — переспрос.")
+        else:
+            lines.append("- До первого ответа по существу оператор не задавал клиенту вопросов (сразу ответил).")
     if facts.get("identity_verified_ids"):
         ids = ", ".join(f"[{i}]" for i in facts["identity_verified_ids"])
         lines.append(f"- Системное подтверждение личности клиента: {ids}.")

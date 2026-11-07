@@ -79,6 +79,10 @@ def main() -> None:
         system_prompt = SYSTEM_PROMPT.format(general_rules=checklist.get("general_rules", ""))
         norm = preprocess.normalize(rec)
         facts = preprocess.compute_facts(rec, norm)
+        if rec.get("audio_url"):
+            aa = db.get_audio_analysis(cid)
+            if aa and aa.get("status") == "done" and aa.get("result"):
+                facts["audio_metrics"] = aa["result"]["metrics"]
         dialog_text = dialog_block(rec, norm, facts)
         run_settings = fit_context(settings, system_prompt, dialog_text, checklist)
         got = {}
