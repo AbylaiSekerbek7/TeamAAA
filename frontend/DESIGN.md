@@ -43,6 +43,16 @@ Rules: icon + text in buttons where space allows; icon-only buttons must have `t
 Russian UI copy, short and business-like. Sentence case. Numbers with units («с», «баллов», «%»). Status words:
 «Да / Нет / N/A», «Оценён», «На апелляции», «Грубая ошибка». Explain AI results plainly; no hype.
 
+## Restraint (anti-template rules)
+- No ALL-CAPS labels or tracked-out eyebrows; labels are sentence case, 12-13px, weight 600, muted colour.
+- Do not join metadata with middle dots («A · B · C»); use separate labelled items or icon + text pairs.
+- Not everything is an identical card: vary hierarchy (page head, toolbars and tables are flat; cards only where
+  content is a unit). One memorable element per screen (on the dialog card it is the evaluation score summary);
+  everything else stays quiet.
+- No decorative motion; transitions only answer user actions (hover, open, confirm).
+- Copy: plain verbs, active voice, buttons say exactly what happens («Оценить выбранные», «Сохранить решение»);
+  empty states tell what to do next.
+
 ## Accessibility
 Contrast ≥ 4.5:1 for text; visible focus (global `:focus-visible`); hit targets ≥ 32px in dense tables; colour is
 never the only signal (pair with icon/text); `prefers-reduced-motion` respected globally.

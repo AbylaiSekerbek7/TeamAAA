@@ -43,7 +43,7 @@ function shell() {
         <div id="nav"></div>
         <div class="sb-foot">
           <div class="sb-status" id="llm-status"><span class="dot"></span><span>Проверка модели…</span></div>
-          <div class="sb-meta">CQA · локальная оценка · v1.0</div>
+          <div class="sb-meta">CQA, версия 1.0</div>
         </div>
       </aside>
       <div class="main">
@@ -117,7 +117,7 @@ async function refreshHealth() {
     const where = h.provider === "ollama" ? "локально" : "API";
     if (h.llm.ok && h.model_available) {
       box.className = "sb-status ok";
-      box.innerHTML = `<span class="dot"></span><span>Модель ${esc(h.model)} · ${where}</span>`;
+      box.innerHTML = `<span class="dot"></span><span>Модель ${esc(h.model)}, ${where}</span>`;
     } else if (h.llm.ok) {
       box.className = "sb-status warn";
       box.innerHTML = `<span class="dot"></span><span>Модель ${esc(h.model)} не найдена</span>`;
