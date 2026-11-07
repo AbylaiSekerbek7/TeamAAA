@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/cqa.db*
+data/runs/
+data/dev.json
+data/*.json
+!data/labels/
+.claude/settings.local.json
+config.local.json
+*.pdf
