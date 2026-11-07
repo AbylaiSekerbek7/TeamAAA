@@ -131,8 +131,12 @@ def init() -> None:
         con.executescript(SCHEMA)
         for path in sorted(DEFAULTS_DIR.glob("checklist_*.json")):
             data = json.loads(path.read_text(encoding="utf-8"))
-            exists = con.execute("SELECT 1 FROM checklists WHERE key=?", (data["key"],)).fetchone()
-            if exists:
+            rows = con.execute("SELECT id, version, comment FROM checklists WHERE key=?", (data["key"],)).fetchall()
+            if rows:
+                # Keep the shipped default (v1, never edited in the UI) in sync with the file; user versions are untouched.
+                if len(rows) == 1 and rows[0]["version"] == 1 and rows[0]["comment"] == DEFAULT_COMMENTS.get(data["key"], "Начальная конфигурация"):
+                    con.execute("UPDATE checklists SET data_json=?, name=? WHERE id=?",
+                                (json.dumps(data, ensure_ascii=False), data["name"], rows[0]["id"]))
                 continue
             con.execute(
                 "INSERT INTO checklists(key, version, name, data_json, comment, is_active, created_at) VALUES (?,?,?,?,?,1,?)",

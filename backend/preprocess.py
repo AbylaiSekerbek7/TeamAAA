@@ -352,6 +352,18 @@ def compute_facts(record: dict, norm: dict) -> dict:
             "name": find_name(first_op["text"]),
             "language": op_lang,
         }
+    # Closing = the trailing operator messages after the client's last line (no client message in between).
+    closing_ids: list[int] = []
+    if last_op is not None:
+        talk = [m for m in msgs if m["id"] <= last_op["id"] and m["speaker"] in ("operator", "client")
+                and not m["internal"] and m["duplicate_of"] is None]
+        for m in reversed(talk):
+            if m["speaker"] != "operator":
+                break
+            closing_ids.insert(0, m["id"])
+    by_id = {m["id"]: m for m in msgs}
+    closing_text = " ".join(by_id[i]["text"] for i in closing_ids)
+
     last_op_checks = None
     bare_after_q = False
     if last_op is not None:
@@ -369,6 +381,8 @@ def compute_facts(record: dict, norm: dict) -> dict:
         "first_operator_answer_id": first_answer_id,
         "last_operator_checks": last_op_checks,
         "bare_farewell_after_question": bare_after_q,
+        "closing_ids": closing_ids,
+        "closing_text": closing_text,
         "first_operator_language": op_lang,
         "last_operator_message_id": last_op["id"] if last_op else None,
         "operator_message_count": len(ops),

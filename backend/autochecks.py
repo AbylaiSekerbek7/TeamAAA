@@ -7,6 +7,34 @@ matches), so an edited or replaced criterion is always judged by the LLM alone.
 from __future__ import annotations
 
 import hashlib
+import re
+
+from .preprocess import FAREWELLS
+
+# Courtesy formulas that are NOT a summary or an offer of help (RU / KZ / EN).
+COURTESY_PATTERNS = [
+    r"пожалуйста", r"рад[аы]?\s+(?:был[аи]?\s+)?(?:вам\s+)?помочь", r"рад[аы]?,?\s+что\s+(?:смог(?:ла|ли)?\s+)?помочь",
+    r"всегда\s+рады?\s+помочь", r"обращайтесь", r"отлично", r"хорошо", r"супер", r"замечательно", r"понял[аи]?", r"ясно",
+    r"спасибо,?\s+что\s+(?:обратились|подождали|дождались|выбрали\s+нас)(?:\s+к\s+нам)?",
+    r"спасибо(?:\s+(?:вам\s+)?за\s+(?:обращение|ожидание|звонок|время|понимание|терпение|вопрос))?",
+    r"благодарю\s+(?:вас\s+)?за\s+(?:обращение|ожидание|звонок|уделенное\s+время|уделённое\s+время|время|понимание)",
+    r"благодар\w*",
+    r"не\s+за\s+что", r"всего\s+хорошего", r"всего\s+доброго", r"удачи",
+    r"оқасы\s+жоқ", r"көмегім\s+тигеніне\s+қуаныштымын", r"рақмет\w*", r"жақсы", r"жарайды", r"әрине",
+    r"you(?:'|’)re\s+welcome", r"happy\s+to\s+help", r"glad\s+(?:i\s+could\s+help|to\s+help|you\s+got\s+in|it\s+worked|that\s+helped)",
+    r"thanks?\s+(?:you\s+)?(?:for\s+(?:reaching\s+out|contacting\s+us|your\s+patience|waiting))?", r"great", r"of\s+course",
+    r"no\s+problem", r"sure", r"perfect", r"you\s+too", r"and",
+]
+
+
+def strip_courtesy(text: str) -> str:
+    """Remove farewells and courtesy formulas, leaving only substantive content."""
+    low = " " + (text or "").lower() + " "
+    for f in sorted(FAREWELLS, key=len, reverse=True):
+        low = re.sub(rf"(?<![\wа-яёәғқңөұүһі]){re.escape(f)}\w*(?:\s+(?:дня|вечера|day|evening|өтсін))?", " ", low)
+    for p in COURTESY_PATTERNS:
+        low = re.sub(rf"(?<![\wа-яёәғқңөұүһі]){p}(?![а-яёәғқңөұүһі\w])", " ", low)
+    return re.sub(r"[\s,.!?;:—–-]+", " ", low).strip()
 
 AUTO_CHECKS = {
     "contact_greeting_name": "Приветствие + имя + язык клиента в первой реплике оператора",
@@ -48,9 +76,20 @@ def run(c: dict, facts: dict) -> dict | None:
         end = facts.get("ending") or {}
         after = facts.get("client_messages_after_last_operator") or []
         if fw:
-            # A farewell alone is not enough (checklist: summary OR offer of help AND farewell) —
-            # whether the closing contains a summary/offer is a semantic judgement left to the LLM.
-            return None
+            # Checklist: summary OR offer of further help AND farewell. Strip farewells and pleasantries from the
+            # closing; nothing left -> bare farewell ("Нет"); a substantive sentence left -> summary/offer ("Да").
+            closing = facts.get("closing_text") or ""
+            rest = strip_courtesy(closing)
+            words = [w for w in re.findall(r"[\wәғқңөұүһіё]+", rest.lower()) if len(w) > 2]
+            if not words:
+                return {"answer": "no", "evidence_ids": [lo], "strength": "strong",
+                        "explanation": f"{c['title']} — Нет. В заключительной реплике [{lo}] только вежливая формула и прощание "
+                                       f"(«{closing.strip()[:80]}») — нет ни итога, ни предложения дальнейшей помощи."}
+            if len(words) >= 3:
+                return {"answer": "yes", "evidence_ids": [lo], "strength": "strong",
+                        "explanation": f"{c['title']} — Да. Оператор подвёл итог / обозначил дальнейший шаг и попрощался: "
+                                       f"«{closing.strip()[:120]}» [{lo}]."}
+            return None  # short remainder — let the LLM judge
         if end.get("event") == "operator_closed":
             return {"answer": "no", "evidence_ids": [lo, end["message_id"]], "strength": "strong",
                     "explanation": f"{c['title']} — Нет. Оператор закрыл чат [{end['message_id']}] без прощания; "
