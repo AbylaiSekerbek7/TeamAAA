@@ -12,3 +12,4 @@ config.local.json
 *.pdf
 data/audio/
 data/rehearsal_audio/
+.claude/skills/
