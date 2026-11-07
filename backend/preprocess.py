@@ -215,6 +215,15 @@ def normalize(record: dict) -> dict:
 
 WORD_RE = re.compile(r"[\wәғқңөұүһіё]+", re.I)
 
+# Offer of further help / explicit summary markers (RU / KZ / EN).
+OFFER_RE = re.compile(
+    r"могу\s+(?:ли\s+)?(?:ещё|еще)\s+(?:чем[- ]?(?:то|нибудь)\s+)?помочь|чем[- ]?(?:то|нибудь)\s+(?:ещё|еще)\s+(?:могу\s+)?помочь|"
+    r"(?:есть|остались|появились|появятся|будут|останутся)\s+(?:ли\s+)?(?:ещё|еще\s+)?(?:какие[- ]?(?:то|нибудь)\s+)?(?:дополнительные\s+)?вопрос|"
+    r"если\s+(?:появятся|будут|останутся|возникнут)\s+вопрос|\bитак\b|\bитого\b|подвед[уёе]\w*\s+итог|таким\s+образом|"
+    r"тағы\s+(?:қандай\s+)?(?:сұрақ|көмек)|басқа\s+сұрақ|"
+    r"anything\s+else|help\s+(?:you\s+)?with\s+anything|any\s+(?:other|more)\s+questions|to\s+sum\s+up|if\s+you\s+have\s+(?:any\s+)?(?:more|other)?\s*questions",
+    re.I)
+
 
 def call_metrics(norm: dict) -> dict | None:
     """Speech metrics estimated from ASR timestamps (voice calls only)."""
@@ -369,6 +378,16 @@ def compute_facts(record: dict, norm: dict) -> dict:
                 break
             closing_ids.insert(0, m["id"])
     by_id = {m["id"]: m for m in msgs}
+    # "Могу ещё чем-то помочь?" / "Итак, …" → short client reply ("Нет, спасибо") → farewell: the offer/summary
+    # belongs to the same closing even though the client answered in between.
+    if closing_ids:
+        talk_all = [m for m in msgs if m["speaker"] in ("operator", "client") and not m["internal"] and m["duplicate_of"] is None]
+        idx = next(i for i, m in enumerate(talk_all) if m["id"] == closing_ids[0])
+        if idx >= 2:
+            between, prev_op = talk_all[idx - 1], talk_all[idx - 2]
+            if (between["speaker"] == "client" and prev_op["speaker"] == "operator" and "?" not in between["text"]
+                    and len(WORD_RE.findall(between["text"])) <= 10 and OFFER_RE.search(prev_op["text"])):
+                closing_ids.insert(0, prev_op["id"])
     closing_text = " ".join(by_id[i]["text"] for i in closing_ids)
 
     last_op_checks = None
@@ -390,6 +409,7 @@ def compute_facts(record: dict, norm: dict) -> dict:
         "bare_farewell_after_question": bare_after_q,
         "closing_ids": closing_ids,
         "closing_text": closing_text,
+        "operator_messages": [{"id": m["id"], "text": m["text"]} for m in ops],
         "first_operator_language": op_lang,
         "last_operator_message_id": last_op["id"] if last_op else None,
         "operator_message_count": len(ops),

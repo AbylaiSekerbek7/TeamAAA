@@ -98,6 +98,10 @@ def main() -> None:
             per[c["id"]]["ok"] += int(ok)
             if not ok:
                 mism.append((cid, c["id"], exp, r.get("answer"), r.get("explanation", "")[:160]))
+        if not args.no_auto:
+            from backend import autochecks
+            for cid_changed in autochecks.reconcile(checklist, res):
+                got[cid_changed] = res[cid_changed]["answer"]
         exp_s = got_s = None
         if not wanted:
             exp_s = compute_score(checklist, {c["id"]: normalize_answer(c, labels[cid].get(c["id"])) for c in criteria})["total"]

@@ -266,6 +266,8 @@ def evaluate(record: dict, checklist: dict, settings: dict,
             progress(c["id"], i, len(criteria))
         results[c["id"]] = evaluate_criterion(client, settings, system_prompt, dialog_text, c, max_id, facts)
 
+    if settings.get("auto_checks", True):
+        autochecks.reconcile(checklist, results)
     answers = {cid: r.get("answer") for cid, r in results.items()}
     score = compute_score(checklist, answers)
     errors = [cid for cid, r in results.items() if r.get("answer") is None]

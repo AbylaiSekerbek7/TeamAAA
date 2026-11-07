@@ -1,0 +1,105 @@
+{
+ "source": "Репетиция контроля: синтетические диалоги, эталон = большинство (задуманная разметка + 2 слепых разметчика)",
+ "labels": {
+  "t9-ru-101": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "t9-ru-102": {
+   "c01_contact": "no",
+   "c02_needs": "na",
+   "c03_identification": "no",
+   "c04_consultation": 10,
+   "c05_empathy": "no",
+   "c06_dialog": 4,
+   "c07_closing": "no",
+   "c08_gross": "yes"
+  },
+  "t9-kz-103": {
+   "c01_contact": "no",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "no",
+   "c08_gross": "no"
+  },
+  "t9-kz-104": {
+   "c01_contact": "yes",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "no",
+   "c08_gross": "yes"
+  },
+  "t9-en-105": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 10,
+   "c05_empathy": "yes",
+   "c06_dialog": 4,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "t9-ru-106": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "t9-ru-107": {
+   "c01_contact": "no",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 0,
+   "c05_empathy": "yes",
+   "c06_dialog": 0,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "t9-ru-108": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "no",
+   "c06_dialog": 7,
+   "c07_closing": "no",
+   "c08_gross": "yes"
+  },
+  "t9-ru-109": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "t9-kz-110": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  }
+ }
+}
