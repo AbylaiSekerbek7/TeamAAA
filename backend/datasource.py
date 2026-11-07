@@ -4,7 +4,7 @@ from __future__ import annotations
 import html
 import re
 import time
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 
@@ -113,6 +113,6 @@ def resolve_audio(conversation_id: str) -> str:
         m = SOURCE_RE.search(r.text) or AUDIO_RE.search(r.text)
         if not m:
             raise DataSourceError("Ссылка на аудио не найдена на странице плеера")
-        src = html.unescape(m.group(1))
+        src = urljoin(str(r.url), html.unescape(m.group(1)))
     _audio_cache[conversation_id] = (time.time() + 45 * 60, src)  # signed URL lives ~60 min
     return src
