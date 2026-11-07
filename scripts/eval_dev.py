@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from backend import db, preprocess  # noqa: E402
-from backend.evaluator import SYSTEM_PROMPT, dialog_block, evaluate_criterion, normalize_answer  # noqa: E402
+from backend.evaluator import SYSTEM_PROMPT, dialog_block, evaluate_criterion, fit_context, normalize_answer  # noqa: E402
 from backend.llm import make_client  # noqa: E402
 from backend.scoring import compute_score  # noqa: E402
 
@@ -80,10 +80,11 @@ def main() -> None:
         norm = preprocess.normalize(rec)
         facts = preprocess.compute_facts(rec, norm)
         dialog_text = dialog_block(rec, norm, facts)
+        run_settings = fit_context(settings, system_prompt, dialog_text, checklist)
         got = {}
         res = {}
         for c in criteria:
-            r = evaluate_criterion(client, settings, system_prompt, dialog_text, c, len(norm["messages"]) - 1,
+            r = evaluate_criterion(client, run_settings, system_prompt, dialog_text, c, len(norm["messages"]) - 1,
                                    None if args.no_auto else facts)
             got[c["id"]] = r.get("answer")
             res[c["id"]] = r

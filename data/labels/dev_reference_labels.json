@@ -1,0 +1,658 @@
+{
+ "source": "Независимая двойная разметка по PDF + судья (сверено с разметкой команды). Не эталон организаторов.",
+ "labels": {
+  "p1-ru-001": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-002": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-003": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "na",
+   "c04_consultation": 10,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-004": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-005": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 15,
+   "c05_empathy": "yes",
+   "c06_dialog": 4,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-006": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-007": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 10,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-008": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-009": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "no",
+   "c04_consultation": 0,
+   "c05_empathy": "no",
+   "c06_dialog": 4,
+   "c07_closing": "yes",
+   "c08_gross": "yes"
+  },
+  "p1-ru-010": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-011": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-012": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "p1-ru-013": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-014": {
+   "c01_contact": "no",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-015": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-016": {
+   "c01_contact": "yes",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 4,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-017": {
+   "c01_contact": "yes",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-018": {
+   "c01_contact": "yes",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 0,
+   "c05_empathy": "no",
+   "c06_dialog": 0,
+   "c07_closing": "no",
+   "c08_gross": "no"
+  },
+  "p1-ru-019": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-020": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-021": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-022": {
+   "c01_contact": "yes",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 0,
+   "c05_empathy": "no",
+   "c06_dialog": 4,
+   "c07_closing": "no",
+   "c08_gross": "yes"
+  },
+  "p1-ru-023": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "yes"
+  },
+  "p1-ru-024": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 15,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-025": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "na",
+   "c04_consultation": "na",
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "p1-ru-026": {
+   "c01_contact": "yes",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 0,
+   "c05_empathy": "no",
+   "c06_dialog": 4,
+   "c07_closing": "no",
+   "c08_gross": "no"
+  },
+  "p1-ru-027": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-028": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-ru-029": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "no",
+   "c06_dialog": 4,
+   "c07_closing": "yes",
+   "c08_gross": "yes"
+  },
+  "p1-ru-030": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-001": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-002": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-003": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-004": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-005": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 4,
+   "c07_closing": "no",
+   "c08_gross": "no"
+  },
+  "p1-kz-006": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-007": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-008": {
+   "c01_contact": "no",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "no",
+   "c08_gross": "no"
+  },
+  "p1-kz-009": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-010": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-011": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "p1-kz-012": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-013": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "no",
+   "c08_gross": "yes"
+  },
+  "p1-kz-014": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-kz-015": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "no",
+   "c04_consultation": 5,
+   "c05_empathy": "no",
+   "c06_dialog": 4,
+   "c07_closing": "yes",
+   "c08_gross": "yes"
+  },
+  "p1-en-001": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-002": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-003": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-004": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-005": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-006": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-007": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 10,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-008": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 15,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-009": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "p1-en-010": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-011": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-012": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p1-en-013": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 10,
+   "c07_closing": "no",
+   "c08_gross": "yes"
+  },
+  "p1-en-014": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "no",
+   "c04_consultation": 5,
+   "c05_empathy": "no",
+   "c06_dialog": 4,
+   "c07_closing": "no",
+   "c08_gross": "yes"
+  },
+  "p1-en-015": {
+   "c01_contact": "no",
+   "c02_needs": "no",
+   "c03_identification": "na",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 4,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p4-ru-003": {
+   "c01_contact": "yes",
+   "c02_needs": "no",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 4,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "p4-ru-002": {
+   "c01_contact": "no",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 15,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p4-ru-001": {
+   "c01_contact": "yes",
+   "c02_needs": "na",
+   "c03_identification": "na",
+   "c04_consultation": 15,
+   "c05_empathy": "no",
+   "c06_dialog": 7,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  },
+  "p4-ru-005": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 20,
+   "c05_empathy": "yes",
+   "c06_dialog": 7,
+   "c07_closing": "yes",
+   "c08_gross": "no"
+  },
+  "p4-ru-004": {
+   "c01_contact": "yes",
+   "c02_needs": "yes",
+   "c03_identification": "yes",
+   "c04_consultation": 15,
+   "c05_empathy": "yes",
+   "c06_dialog": 4,
+   "c07_closing": "na",
+   "c08_gross": "no"
+  }
+ },
+ "notes": {
+  "c07_policy": "Прощание после подтверждения клиента = Да (как в RU/EN-чатах); казахский судья трактовал буквально — отклонено ради единообразия. Открытый вопрос к организаторам."
+ }
+}

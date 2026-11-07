@@ -316,14 +316,20 @@ def compute_facts(record: dict, norm: dict) -> dict:
             "language": op_lang,
         }
     last_op_checks = None
+    bare_after_q = False
     if last_op is not None:
         last_op_checks = {"farewell": find_keyword(last_op["text"], FAREWELLS)}
+        prev_client = [m for m in clients if m["id"] < last_op["id"]]
+        if prev_client and len(WORD_RE.findall(last_op["text"])) <= 3 and prev_client[-1]["text"].rstrip().endswith("?"):
+            between_ops = [m for m in ops if prev_client[-1]["id"] < m["id"] < last_op["id"]]
+            bare_after_q = not between_ops
 
     return {
         "client_language": client_lang,
         "first_operator_message_id": first_op["id"] if first_op else None,
         "first_operator_checks": first_op_checks,
         "last_operator_checks": last_op_checks,
+        "bare_farewell_after_question": bare_after_q,
         "first_operator_language": op_lang,
         "last_operator_message_id": last_op["id"] if last_op else None,
         "operator_message_count": len(ops),

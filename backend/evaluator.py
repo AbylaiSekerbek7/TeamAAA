@@ -220,6 +220,17 @@ def evaluate_criterion(client, settings: dict, system_prompt: str, dialog_text: 
     return result
 
 
+def fit_context(settings: dict, system_prompt: str, dialog_text: str, checklist: dict) -> dict:
+    """Grow num_ctx for long dialogs so Ollama never truncates the start of the prompt."""
+    longest_crit = max((len(criterion_block(c)) for c in checklist.get("criteria", [])), default=1500)
+    approx_tokens = (len(system_prompt) + len(dialog_text) + longest_crit) / 2.5
+    need = int(approx_tokens) + int(settings.get("max_tokens", 900)) + 512
+    ctx = int(settings.get("num_ctx", 8192))
+    while ctx < need and ctx < 32768:
+        ctx += 4096
+    return dict(settings, num_ctx=ctx)
+
+
 def evaluate(record: dict, checklist: dict, settings: dict,
              progress: Callable[[str, int, int], None] | None = None) -> dict:
     t0 = time.time()
@@ -228,6 +239,7 @@ def evaluate(record: dict, checklist: dict, settings: dict,
     client = make_client(settings)
     system_prompt = SYSTEM_PROMPT.format(general_rules=checklist.get("general_rules", "").strip())
     dialog_text = dialog_block(record, norm, facts)
+    settings = fit_context(settings, system_prompt, dialog_text, checklist)
     max_id = len(norm["messages"]) - 1
 
     criteria = [c for c in checklist.get("criteria", []) if c.get("enabled", True)]

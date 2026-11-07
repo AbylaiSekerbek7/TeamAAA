@@ -47,6 +47,8 @@ def run(c: dict, facts: dict) -> dict | None:
         fw = (facts.get("last_operator_checks") or {}).get("farewell")
         end = facts.get("ending") or {}
         after = facts.get("client_messages_after_last_operator") or []
+        if fw and facts.get("bare_farewell_after_question"):
+            return None  # "Goodbye." in reply to a direct question — needs judgement
         if fw:
             return {"answer": "yes", "evidence_ids": [lo], "strength": "strong",
                     "explanation": f"{c['title']} — Да. Оператор завершил диалог прощанием («{fw}») в последней реплике [{lo}]."}

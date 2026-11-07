@@ -145,7 +145,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "temperature": 0.0,
     "votes": 1,
     "vote_temperature": 0.7,
-    "num_ctx": 12288,
+    "num_ctx": 8192,
     "think": False,
     "max_tokens": 900,
     # The organisers' signed API URL is not committed: set CQA_ORG_API_URL, put it into config.local.json
