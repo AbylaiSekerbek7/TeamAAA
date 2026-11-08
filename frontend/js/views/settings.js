@@ -125,7 +125,7 @@ export async function renderSettings(view) {
       <section class="panel st-cost" aria-labelledby="st-h-cost">
         <div class="st-cost-title"><span class="st-sec-ic">${icon("gauge", { size: 18 })}</span><h2 id="st-h-cost">Стоимость</h2></div>
         <div class="st-cost-main"${local ? ' title="Только электроэнергия"' : ""}>
-          <span class="st-cost-value">${local ? "0 ₸" : "По тарифу"}</span><span class="st-cost-cap">за оценку</span>
+          <span class="st-cost-value">${local ? "Бесплатно" : "По тарифу"}</span>
         </div>
         <dl class="st-facts">${facts.map(([t, d]) => `<div><dt>${t}</dt><dd>${d}</dd></div>`).join("")}</dl>
       </section>

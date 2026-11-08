@@ -249,6 +249,64 @@ def evaluate_criterion(client, settings: dict, system_prompt: str, dialog_text: 
     return result
 
 
+DISCLOSURE_SCHEMA = {
+    "type": "object",
+    "properties": {"analysis": {"type": "string"}, "message_id": {"type": "integer"}, "quote": {"type": "string"}},
+    "required": ["analysis", "message_id", "quote"],
+}
+
+
+def verify_disclosure(client, settings: dict, system_prompt: str, dialog_text: str, c: dict,
+                      norm: dict, facts: dict, r: dict) -> None:
+    """Check an identification «Нет»: the model must point to the operator message that discloses this client's
+    account data (or acts on the account / refuses the check) BEFORE the system identity confirmation. On DEV most
+    identification errors were such unfounded «Нет» (general instructions, or data given after the confirmation)."""
+    verified = facts.get("identity_verified_ids") or []
+    first_ok = min(verified) if verified else None
+    op_ids = {m["id"] for m in norm["messages"] if m["speaker"] == "operator"}
+    prompt = (
+        f"{dialog_text}\n\n==========\nПРОВЕРКА ОТВЕТА «Нет» ПО КРИТЕРИЮ «{c['title']}».\n{criterion_block(c)}\n\n"
+        "Ответ «Нет» верен, только если есть реплика ОПЕРАТОРА, в которой он сообщает данные КОНКРЕТНОГО счёта этого "
+        "клиента (статус его платежа или заявки по данным системы, ограничения или блокировка на его счёте, его позиции, "
+        "баланс, его личные данные), выполняет действие по его счёту или отказывается от нужной проверки личности, — "
+        "и эта реплика стоит ДО системного подтверждения личности (или подтверждения нет вовсе). "
+        "НЕ раскрытие данных: общие инструкции и путь в меню приложения, объяснение процедур, сроков и правил, "
+        "предположения без доступа к счёту, просьба пройти идентификацию, реплики ПОСЛЕ подтверждения личности.\n"
+        "В message_id укажи номер такой реплики оператора, в quote — её текст. Если такой реплики нет — message_id = -1.\n"
+        "Верни JSON."
+    )
+    try:
+        resp = client.chat_json(model=settings["model"], messages=[{"role": "system", "content": system_prompt},
+                                                                   {"role": "user", "content": prompt}],
+                                schema=DISCLOSURE_SCHEMA, temperature=float(settings.get("temperature", 0.0)), seed=42,
+                                num_ctx=int(settings.get("num_ctx", 8192)), think=settings.get("think", False),
+                                max_tokens=int(settings.get("max_tokens", 900)))
+        data = resp["json"] if isinstance(resp.get("json"), dict) else {}
+        r["prompt_tokens"] = r.get("prompt_tokens", 0) + resp.get("prompt_tokens", 0)
+        r["completion_tokens"] = r.get("completion_tokens", 0) + resp.get("completion_tokens", 0)
+    except Exception:  # noqa: BLE001 — the check is optional; keep the original verdict
+        return
+    try:
+        mid = int(data.get("message_id", -1))
+    except (TypeError, ValueError):
+        mid = -1
+    if mid in op_ids and (first_ok is None or mid < first_ok):
+        return  # the «Нет» is backed by a concrete disclosure before the confirmation
+    if first_ok is not None:
+        new, ev = "yes", [first_ok]
+        why = (f"{c['title']} — Да. Личность клиента подтверждена системой [{first_ok}]; реплик оператора с данными "
+               f"конкретного счёта до подтверждения нет (проверка ответа «Нет» моделью).")
+    elif c.get("na_allowed"):
+        new, ev = "na", [m for m in sorted(op_ids)][:1]
+        why = (f"{c['title']} — N/A. Оператор не сообщал данные конкретного счёта и не выполнял действий по счёту, "
+               f"поэтому идентификация не требовалась (проверка ответа «Нет» моделью).")
+    else:
+        return
+    r.update({"llm_answer": "no", "answer": new, "answer_label": answer_label(c, new), "evidence_ids": ev,
+              "explanation": why, "source": "llm+check",
+              "analysis": (r.get("analysis") or "") + f" Проверка: {str(data.get('analysis', '')).strip()}"})
+
+
 def fit_context(settings: dict, system_prompt: str, dialog_text: str, checklist: dict) -> dict:
     """Grow num_ctx for long dialogs so Ollama never truncates the start of the prompt."""
     longest_crit = max((len(criterion_block(c)) for c in checklist.get("criteria", [])), default=1500)
@@ -279,6 +337,9 @@ def evaluate(record: dict, checklist: dict, settings: dict,
         if progress:
             progress(c["id"], i, len(criteria))
         results[c["id"]] = evaluate_criterion(client, settings, system_prompt, dialog_text, c, max_id, facts)
+        if (settings.get("auto_checks", True) and results[c["id"]].get("answer") == "no" and autochecks.is_active(c)
+                and c["auto_check"]["type"] == "identification_disclosure"):
+            verify_disclosure(client, settings, system_prompt, dialog_text, c, norm, facts, results[c["id"]])
 
     if settings.get("auto_checks", True):
         autochecks.reconcile(checklist, results)
