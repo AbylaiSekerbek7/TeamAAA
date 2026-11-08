@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "team_name": "TeamAAA",
+  "team_name": "Team AAA",
   "model": {
     "mode": "local",
     "name": "qwen3.5:9b (Ollama); faster-whisper small (анализ аудио)"

@@ -162,7 +162,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "num_ctx": 8192,
     "think": False,
     "max_tokens": 900,
-    "team_name": "TeamAAA",
+    "team_name": "Team AAA",
     "audio_analysis": True,
     "whisper_model": "small",
     "whisper_device": "cpu",
