@@ -185,12 +185,17 @@ def evaluate_criterion(client, settings: dict, system_prompt: str, dialog_text: 
         temp = float(settings.get("temperature", 0.0)) if v == 0 else float(settings.get("vote_temperature", 0.7))
         seed = 42 + v
         last_err = None
-        for _attempt in range(2):
+        max_tokens = int(settings.get("max_tokens", 900))
+        for attempt in range(3):
+            # At temperature 0 a retry repeats the same output (e.g. a reasoning loop cut off by the token
+            # limit), so retries sample with a new seed, a little temperature and a larger budget.
+            a_temp = temp if attempt == 0 else max(temp, 0.4)
+            a_tokens = max_tokens if attempt == 0 else max_tokens * 2
             try:
                 resp = client.chat_json(
-                    model=settings["model"], messages=messages, schema=schema, temperature=temp, seed=seed,
+                    model=settings["model"], messages=messages, schema=schema, temperature=a_temp, seed=seed,
                     num_ctx=int(settings.get("num_ctx", 8192)), think=settings.get("think", False),
-                    max_tokens=int(settings.get("max_tokens", 900)),
+                    max_tokens=a_tokens,
                 )
                 data = resp["json"]
                 tokens_in += resp["prompt_tokens"]
@@ -226,6 +231,8 @@ def evaluate_criterion(client, settings: dict, system_prompt: str, dialog_text: 
             except Exception as e:  # noqa: BLE001 — one failed criterion must not discard the whole evaluation
                 last_err = e
                 seed += 100
+                if isinstance(e, LLMError) and "недоступна" in str(e):
+                    break  # the server is down: retrying with other sampling will not help
         if last_err is not None:
             runs.append({"answer": None, "evidence_ids": [], "analysis": "", "explanation": f"Ошибка модели: {last_err}"})
     result = _vote(c, runs)
