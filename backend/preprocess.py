@@ -28,14 +28,25 @@ SYSTEM_EVENTS: dict[str, list[str]] = {
         "личность клиента подтверждена", "customer identity verified", "жеке басы расталды",
         "identity verified", "идентификация пройдена",
     ],
-    "operator_closed": ["оператор закрыл чат", "agent closed the chat", "оператор чатты жапты"],
+    "operator_closed": [
+        "оператор закрыл чат", "agent closed the chat", "оператор чатты жапты",
+        "оператор завершил чат", "agent ended the chat", "оператор чатты аяқтады",
+    ],
     "client_left": [
         "клиент покинул чат", "customer left", "клиент шықты", "клиент чаттан шықты",
         "клиент завершил разговор", "customer ended",
+        # wording variants not present in DEV (other languages / generators)
+        "client left", "customer has left", "клиент вышел из чата", "клиент закрыл чат", "клиент отключился",
+        "клиент чатты жапты", "чаттан кетті", "чаттан шығып кетті", "customer closed the chat",
+        # FBroker control set: «Клиент операторға сұрағын жазбай тұрып, чаттан шықты.»
+        "чаттан шықты", "покинул чат", "вышел из чата",
+        "customer disconnected", "client disconnected",
     ],
     "connection_lost": [
         "соединение с клиентом прервано", "connection to customer lost", "байланыс үзілді",
         "связь прервана", "connection lost",
+        "соединение прервано", "соединение с клиентом потеряно", "connection to the customer was lost",
+        "connection with the customer was lost", "байланыс жоғалды",
     ],
     "recording_paused": ["запись и транскрибирование приостановлены", "recording paused"],
     "recording_resumed": ["запись и транскрибирование возобновлены", "recording resumed"],
